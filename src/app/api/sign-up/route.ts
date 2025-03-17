@@ -1,8 +1,8 @@
 import {prisma} from '@/config/db';
 import bcrypt from 'bcryptjs';
-import { sendVerificationEmail } from '@/helpers/sendVerificationEmail';
-import { signUpSchema } from '@/schema/signUpSchema';
-import { sign } from 'crypto';
+// import { sendVerificationEmail } from '@/helpers/sendVerificationEmail';
+// import { signUpSchema } from '@/schema/signUpSchema';
+// import { sign } from 'crypto';
 import {Sendemail} from '@/helpers/Sendemail';
 
 export async function POST(request: Request) {

@@ -23,7 +23,7 @@ export async function Sendemail(email: string, username: string, verifyCode: str
       html:  emailHtml, // Use the rendered HTML instead of `react`
     };
 
-    const info = await transporter.sendMail(mailOptions);
+    await transporter.sendMail(mailOptions);
     return { success: true, message: 'Verification email sent successfully.' };
   } catch (emailError) {
     console.error('Error sending verification email:', emailError);

@@ -1,6 +1,6 @@
 'use client' ;
 
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import { Form, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { verifySchema } from '@/schema/verifySchema'
 import { ApiResponse } from '@/type/ApiResponse'
@@ -38,8 +38,7 @@ export default function VerifyAccount () {
               const axiosError = error as AxiosError<ApiResponse>;
         
               // Default error message
-              let errorMessage = axiosError.response?.data.message;
-              ('There was a problem with your sign-up. Please try again.');
+              const errorMessage = axiosError.response?.data.message || 'There was a problem with your sign-up. Please try again.';
         
               toast(
                errorMessage
