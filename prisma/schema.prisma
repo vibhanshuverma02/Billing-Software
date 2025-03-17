@@ -1,0 +1,31 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+model User {
+  id                String   @id @default(cuid())
+  username          String   @unique
+  email             String   @unique
+  phoneNumber       String   @unique // Default phone number
+  password          String
+  verifyCode        String     // Default verification code
+  verifyCodeExpiry  DateTime @default(now())     // Set default expiry to current time
+  isVerified        Boolean  @default(false)
+  isAcceptingMessages Boolean @default(true)
+  messages         Message[]
+  createdAt        DateTime @default(now())
+}
+
+
+model Message {
+  id         String   @id @default(cuid())
+  content    String
+  createdAt  DateTime @default(now())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+}
