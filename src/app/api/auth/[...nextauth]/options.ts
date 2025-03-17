@@ -9,17 +9,18 @@ export const authOptions: NextAuthOptions = {
       id: 'credentials',
       name: 'Credentials',
       credentials: {
-        identifier: { label: 'identifier', type: 'text', placeholder: 'user@example.com' },
+        email: { label: 'Email', type: 'text', placeholder: 'user@example.com' },
         password: { label: 'Password', type: 'password' },
       },
-      async authorize(credentials: any): Promise<any>  {
-        if (!credentials?.identifier || !credentials?.password) {
-          throw new Error('email and password are required');
+      async authorize(
+        credentials: Record<"email" | "password", string> | undefined
+      ): Promise<{ id: string; email: string; username: string; isVerified: boolean } | null> {
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error('Email and password are required');
         }
-
         try {
           const user = await prisma.user.findUnique({
-            where: { email: credentials.identifier ,
+            where: { email: credentials.email ,
              },
             
           });
@@ -38,8 +39,8 @@ export const authOptions: NextAuthOptions = {
           }
 
           return user;
-        } catch (error: any) {
-          console.error('Authorization Error:', error.message);
+        } catch (error: unknown) {
+          console.error('Authorization Error:', error);
           throw new Error('An error occurred while logging in');
         }
       },
