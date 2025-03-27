@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig = {
   experimental: {
-    // esmExternals: 'loose',  // ✅ Enable ESM support
+    turbo: false  // Disable Turbopack
   }
 };
 
