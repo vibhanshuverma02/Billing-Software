@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { stockSchema } from "@/schema/stockSchema";
 import { invoiceschema } from "@/schema/invoiceschema";
 // import { PDFDownloadLink } from "@react-pdf/renderer";  // ✅ Import PDFDownloadLink
-import InvoicePDF from  "@/components/PDF" ;    // ✅ Import he PDF component
+// import InvoicePDF from  "@/components/PDF" ;    // ✅ Import he PDF component
 import { z } from "zod";
 import { Loader2, Trash2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,10 @@ const BlobProvider = dynamic(
   () => import("@react-pdf/renderer").then((mod) => mod.BlobProvider),
   { ssr: false }
 );
+
+const InvoicePDF = dynamic(() => import("@/components/PDF"), {
+  ssr: false,
+});
 type InvoiceFormData = z.infer<typeof invoiceschema>& {
   items: z.infer<typeof stockSchema>["items"];
 };
