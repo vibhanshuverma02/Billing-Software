@@ -1,4 +1,3 @@
-// prisma/schema.prisma
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,25 +7,67 @@ datasource db {
   url      = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
+
 model User {
   id                String   @id @default(cuid())
   username          String   @unique
   email             String   @unique
-  phoneNumber       String   @unique // Default phone number
+  phoneNumber       String   @unique        // Default phone number
   password          String
-  verifyCode        String     // Default verification code
-  verifyCodeExpiry  DateTime @default(now())     // Set default expiry to current time
+  verifyCode        String                  // Default verification code
+  verifyCodeExpiry  DateTime @default(now())  // Set default expiry to current time
   isVerified        Boolean  @default(false)
-  isAcceptingMessages Boolean @default(true)
-  messages         Message[]
-  createdAt        DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt      // Fixed casing for consistency
+  customers         Customer[]              // One-to-many relationship with customers
+  invoices          Invoice[]               // One-to-many relationship with invoices
 }
 
+model Customer {
+  id               Int       @id @default(autoincrement())
+  username         String                                 // Foreign key reference to User
+  customerName     String                                 // CamelCase for consistency
+  mobileNo         String?                                // Optional field
+  address          String?                                // Optional field
+  balance          Float    @default(0.00)                 // Default balance
+  status           String   @default("Active")             // Active/Inactive status
+  createdAt        DateTime @default(now())                // Timestamp of creation
+  updatedAt        DateTime @updatedAt                     // Auto-updated timestamp
+  pdfUrl           String                                 // ✅ PDF URL field
 
-model Message {
-  id         String   @id @default(cuid())
-  content    String
-  createdAt  DateTime @default(now())
-  userId     String
-  user       User     @relation(fields: [userId], references: [id])
+  invoices         Invoice[]                               // One-to-many relationship with invoices
+
+  user             User     @relation(fields: [username], references: [username])
+
+  @@index([username])
+  @@map("customers")
 }
+
+model Invoice {
+  id               Int       @id @default(autoincrement())
+  username         String                                 // Foreign key reference to User
+  customerId       Int                                    // Foreign key reference to Customer
+  customerName     String                                 // Foreign key reference to Customer
+  invoiceNo        String                                 // Unique invoice number
+  totalAmount      Float                                  // Total invoice amount
+  paidAmount       Float                                  // Amount paid by customer
+  balanceDue       Float                                  // Remaining balance
+  paymentStatus    String    @default("Due")               // Payment status: Due, Partial, Paid
+  invoiceDate      DateTime  @default(now())               // Invoice creation date
+
+  customer         Customer  @relation(fields: [customerId], references: [id])
+  user             User      @relation(fields: [username], references: [username])
+
+  @@index([customerId])
+  @@map("invoices")
+}
+model Stock {
+  id        Int      @id @default(autoincrement())
+  username   String   // Foreign key reference to User
+  itemName  String
+  hsn       String
+  rate      Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+

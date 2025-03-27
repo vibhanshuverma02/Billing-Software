@@ -60,6 +60,7 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.id;
         session.user.isVerified = token.isVerified;
         session.user.username = token.username;
+        
       }
       return session;
     },

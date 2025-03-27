@@ -49,7 +49,7 @@ export default function SignInForm() {
           : result.error
       );
     } else if (result?.url) {
-      router.replace('/result.url');
+      router.replace('/test');
     }
 
     setIsSubmitting(false);
@@ -60,7 +60,7 @@ export default function SignInForm() {
       <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow-md">
         <div className="text-center">
           <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl mb-6">
-            Join True Feedback
+            Billing Counter 
           </h1>
           <p className="mb-4">Sign in</p>
         </div>
@@ -106,7 +106,7 @@ export default function SignInForm() {
         <div className="text-center mt-4">
           <p>
             Not a member?{' '}
-            <Link href="/sign-up" className="text-blue-600 hover:text-blue-800">
+            <Link href="/signup" className="text-blue-600 hover:text-blue-800">
               Sign Up
             </Link>
           </p>

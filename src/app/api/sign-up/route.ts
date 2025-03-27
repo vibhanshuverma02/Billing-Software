@@ -101,7 +101,7 @@ else{
           verifyCode,
           verifyCodeExpiry,
           isVerified: false,
-          isAcceptingMessages: true,
+        
         },
       });
     
