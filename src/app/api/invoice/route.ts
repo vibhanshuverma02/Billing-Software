@@ -152,16 +152,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
   }
 }
-  // ✅ PUT handler to update pdfURL using customerId
+  // ✅ PUT handler to update pdfPath using customerId
 
   
 export async function PUT(request: Request) {
   try {
-    const { customerId, pdfURL } = await request.json();
+    const { customerId, pdfPath } = await request.json();
 
-    if (!customerId || !pdfURL) {
+    if (!customerId || !pdfPath) {
       return Response.json(
-        { success: false, message: 'Customer ID and pdfURL are required' },
+        { success: false, message: 'Customer ID and pdfPath are required' },
         { status: 400 }
       );
     }
@@ -179,7 +179,7 @@ export async function PUT(request: Request) {
 
     const updatedCustomer = await prisma.customer.update({
       where: { id:customerId},
-      data: { pdfUrl: pdfURL },
+      data: { pdfUrl: pdfPath },
     });
 
     return Response.json(

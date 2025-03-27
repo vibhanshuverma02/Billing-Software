@@ -1,12 +1,13 @@
 "use client";
-import dynamic from "next/dynamic";
+//import dynamic from "next/dynamic";
 import { useSession } from "next-auth/react";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { stockSchema } from "@/schema/stockSchema";
 import { invoiceschema } from "@/schema/invoiceschema";
-// import { PDFDownloadLink } from "@react-pdf/renderer";  // ✅ Import PDFDownloadLink
-// import InvoicePDF from  "@/components/PDF" ;    // ✅ Import he PDF component
+import { pdf } from "@react-pdf/renderer";  // ✅ Import PDFDownloadLink
+import InvoicePDF from  "@/components/PDF" ; 
+import { saveAs } from "file-saver";   // ✅ Import he PDF component
 import { z } from "zod";
 import { Loader2, Trash2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -27,14 +28,15 @@ import { Item } from "@radix-ui/react-select";
 
 
 // ✅ Lazy load PDFDownloadLink to avoid SSR issues
-const BlobProvider = dynamic(
-  () => import("@react-pdf/renderer").then((mod) => mod.BlobProvider),
-  { ssr: false }
-);
+// ✅ Use ESM-friendly import for PDFDownloadLink
+// const PDFDownloadLinkNoSSR = dynamic(
+//   () =>
+//     import("@react-pdf/renderer").then((mod) => {
+//       return mod.PDFDownloadLink;
+//     }),
+//   { ssr: false }
+// );
 
-const InvoicePDF = dynamic(() => import("@/components/PDF"), {
-  ssr: false,
-});
 type InvoiceFormData = z.infer<typeof invoiceschema>& {
   items: z.infer<typeof stockSchema>["items"];
 };
@@ -288,27 +290,46 @@ useEffect(() => {
       setIsSubmitting(false); 
 
     }
-//   };
-//   const MemoizedPDF: React.FC<InvoiceFormData> = ({ invoiceNo, date, username, customerName, mobileNo, address, items, Grandtotal, gstTotal, paidAmount, balanceDue, paymentStatus }) => {
-//     const pdfDoc = useMemo(() => {return(
-//       <InvoicePDF
-//         invoiceNo={invoiceNo}
-//         date={date}
-//         username={username}
-//         customerName={customerName}
-//         mobileNo={mobileNo}
-//         address={address||"NULL"}
-//         items={items}
-//         Grandtotal={Grandtotal}
-//         gstTotal={gstTotal}
-//         paidAmount={paidAmount}
-//         balanceDue={balanceDue}
-//         paymentStatus={paymentStatus}
-//       />
-//     );
-//   }, [invoiceNo, date, username, customerName, mobileNo, address, items, Grandtotal, gstTotal, paidAmount, balanceDue, paymentStatus]);
-//   return pdfDoc;
-};
+  }; const generateAndDownloadPDF = async () => {
+    try {
+      const blob = await pdf(
+        <InvoicePDF invoiceNo={invoiceNo}
+        date={date}
+        username={username || form.getValues("username")}
+        customerID={customerID || "NA"}
+        customerName={state.customername}
+        mobileNo={state.customermobileNo}
+        address={form.getValues("address") || "NA"}
+        items={fields.length > 0
+          ? fields
+          : [{ itemName: "N/A", hsn: "0000", rate: 0, quantity: 0, gstRate: 0 }]}
+        Grandtotal={form.getValues("Grandtotal")}
+        gstTotal={gstTotal}
+        paidAmount={form.getValues("paidAmount")}
+        balanceDue={balanceDue || 0}
+        paymentStatus={paymentStatus || "NA"}/>
+      ).toBlob();
+
+      const fileName = `invoice_${Date.now()}.pdf`;
+      saveAs(blob, fileName);
+
+      // Simulate local path (only for display purposes)
+      const pdfPath = `C:/Users/Client/Downloads/${fileName}`;
+
+      // ✅ Save PDF path to database
+      await axios.put("/api/invoice", {
+        customerId: customerID,
+        pdfPath,
+      });
+
+      alert("PDF generated and path saved!");
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      alert("Failed to generate PDF.");
+    }
+  };
+
+
   return (
     <div className="p-8 bg-gray-50 min-h-screen">
       <Card className="max-w-5xl mx-auto shadow-md rounded-lg">
@@ -588,8 +609,8 @@ useEffect(() => {
                 )}
  
          </Button> */}
-         
-         <BlobProvider
+{/*          
+         <PDFDownloadLink
   document={
     <InvoicePDF
       invoiceNo={invoiceNo}
@@ -617,7 +638,7 @@ useEffect(() => {
       </button>
     ) : (
       <a
-        href={url ||"NA"}
+        href={url ||"#"}
         download={`invoice_${invoiceNo}.pdf`}
         className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
       >
@@ -625,7 +646,24 @@ useEffect(() => {
       </a>
     )
   }
-</BlobProvider>
+</PDFDownloadLink> */}
+ <div style={{ padding: "20px" }}>
+      <h1>Generate PDF Invoice</h1>
+
+      <button
+        onClick={generateAndDownloadPDF}
+        style={{
+          padding: "10px 20px",
+          backgroundColor: "green",
+          color: "white",
+          border: "none",
+          borderRadius: "5px",
+          cursor: "pointer",
+        }}
+      >
+        Generate and Download PDF
+      </button>
+    </div>
 
           </form>
         </Form>
