@@ -132,6 +132,7 @@ const InvoicePDF = ({
       <View style={styles.section}>
         <Text style={styles.billTo}>Bill To:</Text>
         <Text>Customer: {customerName}</Text>
+        <Text>customerID:{customerID}</Text>
         <Text>Address: {address}</Text>
         <Text>Contact: {mobileNo}</Text>
       </View>

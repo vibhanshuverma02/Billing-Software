@@ -120,7 +120,7 @@ const fetchCustomers = useCallback(async () => {
 
 useEffect(() => {
   validateFields();
-}, [customername, customermobileNo]);  // ✅ Run validation on field changes
+}, [customername, customermobileNo , validateFields]);  // ✅ Run validation on field changes
 
 useEffect(() => {
   if (isValid) {
@@ -168,7 +168,7 @@ useEffect(() => {
     setGstTotal(gst);
   }, [fields, form]);
   
-// eslint-disable-next-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     calculateTotals();
   }, [fields]);
@@ -231,10 +231,19 @@ useEffect(() => {
       setPaymentStatus(response.data.paymentStatus);
 
       toast.success("Invoice generated successfully!");
-    } catch (error: any) {
+    } catch (error) {
       console.error("Failed to generate invoice:", error);
-      toast.error(error?.response?.data?.message || "Failed to generate invoice.");
-    } finally {
+      const axiosError = error as AxiosError<ApiResponse>;
+
+      // Default error message
+      const errorMessage =  axiosError.response?.data.message ||
+     'Failed to generate invoice:';
+
+
+      toast(
+       errorMessage
+        //variant: 'destructive',
+      );    } finally {
       setIsSubmitting(false);
     }
   };

@@ -200,20 +200,19 @@ const fetchCustomer = useCallback(async () => {
     name: "items",
   });
 
-  // ✅ Calculate Totals
-  const calculateTotals = () => {
+  const calculateTotals = useCallback(() => {
     const subtotal = fields.reduce((sum, item) => sum + item.rate * item.quantity, 0);
     const gst = fields.reduce((sum, item) => sum + (item.rate * item.quantity * item.gstRate) / 100, 0);
     const grandTotal = subtotal + gst;
-    form.setValue("Grandtotal", grandTotal);  // Set grand total in schema field
-    setGstTotal(gst);
-  };
   
-// eslint-disable-next-line react-hooks/exhaustive-deps
+    form.setValue("Grandtotal", grandTotal);
+    setGstTotal(gst);
+  }, [fields, form]);
+  
 
   useEffect(() => {
     calculateTotals();
-  }, [fields,calculateTotals]);
+  }, [fields , calculateTotals]);
 
   const [selectedStock, setSelectedStock] = useState<InvoiceFormData["items"][number] |  null>(null);
   const [quantity, setQuantity] = useState<number>(1);
@@ -285,14 +284,23 @@ useEffect(() => {
       setPaymentStatus(response.data.paymentStatus);
 
       toast.success("Invoice generated successfully!");
-    } catch (error: any) {
+    } catch (error) {
       console.error("Failed to generate invoice:", error);
-      toast.error(error?.response?.data?.message || "Failed to generate invoice.");
-    } finally {
-      setIsSubmitting(false); 
+      const axiosError = error as AxiosError<ApiResponse>;
 
+      // Default error message
+      const errorMessage =  axiosError.response?.data.message ||
+     'Failed to generate invoice:';
+
+
+      toast(
+       errorMessage
+        //variant: 'destructive',
+      );    } finally {
+      setIsSubmitting(false);
     }
-  }; const generateAndDownloadPDF = async () => {
+  };
+  const generateAndDownloadPDF = async () => {
     try {
       const blob = await pdf(
         <InvoicePDF invoiceNo={invoiceNo}
