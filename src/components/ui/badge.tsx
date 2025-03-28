@@ -24,7 +24,6 @@ const badgeVariants = cva(
     },
   }
 )
-
 function Badge({
   className,
   variant,
@@ -38,7 +37,7 @@ function Badge({
     <Comp
       data-slot="badge"
       className={cn(badgeVariants({ variant }), className)}
-      {...props}
+      {...(props as React.HTMLAttributes<HTMLElement>)} // ✅ Cast props to HTMLElement
     />
   )
 }
