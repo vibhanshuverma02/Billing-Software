@@ -114,7 +114,7 @@ const InvoicePDF = ({
     <Document>
     <Page size="A3" style={styles.page}>
     <View style={styles.user}>
-        <Text>{customerID}</Text>
+        <Text>{username}</Text>
         <Text>Address: Main Market Roorkee</Text>
         <Text>Contact: 9999999999</Text>
        <Text>GST: XXXXXXXXXXXXX</Text> 

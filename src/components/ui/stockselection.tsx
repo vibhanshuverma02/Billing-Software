@@ -5,13 +5,15 @@ import axios from "axios";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 
-import { z } from "zod";
+// import { z } from "zod";
 
 interface StockItem {
   id: string;
   itemName: string;
   hsn: string;
   rate: number;
+  quantity:number;
+  gstRate:number;
 }
 
 interface StockSelectProps {
@@ -22,7 +24,7 @@ interface StockSelectProps {
 const StockSelect: React.FC<StockSelectProps> = ({ onSelect }) => {
   const [stocks, setStocks] = useState<StockItem[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedItemName, setSelectedItemName] = useState<String | null>(null);  // ✅ Store selected item
+  const [selectedItemName, setSelectedItemName] = useState<string | null>(null);  // ✅ Store selected item
 
   useEffect(() => {
     const fetchStocks = async () => {

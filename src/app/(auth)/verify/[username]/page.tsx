@@ -11,12 +11,13 @@ import { useParams } from 'next/navigation'
 import { useRouter } from 'next/navigation'
 import { Loader2 } from 'lucide-react';
 
-import React from 'react'
+import React, { useState } from 'react'
 import {  useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import * as z  from 'zod'
 
 export default function VerifyAccount () {
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const router = useRouter()
     const param = useParams<{username: string}>()
     const form = useForm<z.infer<typeof verifySchema>>({
@@ -24,11 +25,14 @@ export default function VerifyAccount () {
        
       });
   const onSubmit = async (data:z.infer<typeof verifySchema>) =>{
+    setIsSubmitting(true);
+
     try{
      const response=   await axios.post('/api/verify-code',{
           username: param.username,
           code : data.code
         })
+        
         toast(
             response.data.message,
         )
@@ -46,6 +50,10 @@ export default function VerifyAccount () {
                errorMessage
                 //variant: 'destructive',
               );
+            }
+            finally {
+              setIsSubmitting(false); 
+        
             }
           };
     
@@ -79,7 +87,18 @@ export default function VerifyAccount () {
             </FormItem>
           )}
         />
-        <Button type="submit">Submit</Button>
+        
+        <Button type="submit" className="w-full" aria-disabled ={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Please wait
+                </>
+              ) : (
+                'Generate Bill'
+              )}
+            </Button>
+
       </form>
     </Form>
         </div>

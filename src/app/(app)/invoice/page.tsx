@@ -11,7 +11,7 @@ import { Loader2, Trash2 } from 'lucide-react';
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Form, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { toast } from "sonner";
 import axios, { AxiosError } from "axios";
@@ -21,7 +21,7 @@ import StockSelect from "@/components/ui/stockselection";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
-import { useDebounceCallback, useDebounceValue } from "usehooks-ts";
+// import { useDebounceCallback, useDebounceValue } from "usehooks-ts";
 import { ApiResponse } from "@/type/ApiResponse";
 
 type InvoiceFormData = z.infer<typeof invoiceschema>& {
@@ -159,21 +159,21 @@ useEffect(() => {
     control: form.control,
     name: "items",
   });
-
-  // ✅ Calculate Totals
-  const calculateTotals = () => {
+  const calculateTotals = useCallback(() => {
     const subtotal = fields.reduce((sum, item) => sum + item.rate * item.quantity, 0);
     const gst = fields.reduce((sum, item) => sum + (item.rate * item.quantity * item.gstRate) / 100, 0);
     const grandTotal = subtotal + gst;
-    form.setValue("Grandtotal", grandTotal);  // Set grand total in schema field
+  
+    form.setValue("Grandtotal", grandTotal);
     setGstTotal(gst);
-  };
-
+  }, [fields, form]);
+  
+// eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     calculateTotals();
   }, [fields]);
 
-  const [selectedStock, setSelectedStock] = useState<any | null>(null);
+  const [selectedStock, setSelectedStock] = useState<InvoiceFormData["items"][number] |  null>(null);
   const [quantity, setQuantity] = useState<number>(1);
   const [gstRate, setGstRate] = useState<number>(12);
  
@@ -189,8 +189,8 @@ useEffect(() => {
       itemName: selectedStock.itemName,
       hsn: selectedStock.hsn,
       rate: selectedStock.rate,
-      quantity,
-      gstRate,
+      quantity:selectedStock.quantity,
+      gstRate: selectedStock.gstRate,
     });
 
     // Reset selection
@@ -213,13 +213,9 @@ useEffect(() => {
    // ✅ Handle API Submission
   // ✅ Submit the form
 
-useEffect(() => {
-
-}
-)
 
   const onSubmit = async () => {
-    const formData = form.getValues();  // Collect entire form data
+    const formData:InvoiceFormData  = form.getValues();  // Collect entire form data
 
     console.log("Submitting:", formData);
     setIsSubmitting(true);

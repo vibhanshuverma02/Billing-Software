@@ -18,10 +18,10 @@ export async function POST(req: Request) {
     const pdfUrl = `/invoices/${customerName}.pdf`;
 
     // ✅ Save PDF URL in the database
-    // await prisma.invoice.update({
-    //   where: { id: customerId },
-    //   data: { pdfUrl: pdfUrl }
-    // });
+    await prisma.customer.update({
+      where: { id: customerId },
+      data: { pdfUrl: pdfUrl }
+    });
 
     return NextResponse.json({ message: "PDF saved", pdfUrl });
 

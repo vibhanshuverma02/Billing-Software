@@ -12,19 +12,19 @@ import { z } from "zod";
 import { Loader2, Trash2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Form, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Form, FormItem, FormLabel} from "@/components/ui/form";
 import { toast } from "sonner";
 import axios, { AxiosError } from "axios";
-import { useState, useEffect,  useReducer, useRef, useCallback ,useMemo} from "react";
+import { useState, useEffect,  useReducer, useRef, useCallback } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import StockSelect from "@/components/ui/stockselection";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
-import { useDebounceCallback, useDebounceValue } from "usehooks-ts";
+// import { useDebounceCallback, useDebounceValue } from "usehooks-ts";
 import { ApiResponse } from "@/type/ApiResponse";
-import { Item } from "@radix-ui/react-select";
+// import { Item } from "@radix-ui/react-select";
 
 
 // ✅ Lazy load PDFDownloadLink to avoid SSR issues
@@ -208,12 +208,14 @@ const fetchCustomer = useCallback(async () => {
     form.setValue("Grandtotal", grandTotal);  // Set grand total in schema field
     setGstTotal(gst);
   };
+  
+// eslint-disable-next-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     calculateTotals();
   }, [fields,calculateTotals]);
 
-  const [selectedStock, setSelectedStock] = useState<any | null>(null);
+  const [selectedStock, setSelectedStock] = useState<InvoiceFormData["items"][number] |  null>(null);
   const [quantity, setQuantity] = useState<number>(1);
   const [gstRate, setGstRate] = useState<number>(12);
  
@@ -265,7 +267,7 @@ useEffect(() => {
     // form.setValue("mobileNo", state.customermobileNo);
 
     // await new Promise((resolve) => setTimeout(resolve, 0)); 
-    const formData = form.getValues();  // Collect entire form data
+    const formData:InvoiceFormData  = form.getValues();  // Collect entire form data
     console.log("Updated Form Data:", formData);  // 🔥 Log the form data
     console.log("Submitting:", formData);
     setIsSubmitting(true);
