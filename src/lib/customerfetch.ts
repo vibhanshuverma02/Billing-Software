@@ -1,20 +1,18 @@
-// lib/customerService.ts
 import { prisma } from '@/config/db';
+import { Customer, Employee } from '@prisma/client';
 
-export async function getCustomers() {
+export async function getCustomers(): Promise<Customer[]> {
   return await prisma.customer.findMany();
 }
 
-export async function getCustomerById(id: number) {
+export async function getCustomerById(id: number): Promise<Customer | null> {
   return await prisma.customer.findUnique({
-    where: { id: id },
+    where: { id },
   });
 }
 
-export async function getemployee(username : string ,name :string) {
+export async function getEmployee(username: string, name: string): Promise<Employee[]> {
   return await prisma.employee.findMany({
-    where: { username: username,
-             name :name ,
-    }}
-   );
+    where: { username, name },
+  });
 }

@@ -9,12 +9,23 @@ import { getCustomerById } from '@/lib/customerfetch';
 export default async function PhotoModal({
   params,
 }: {
-  params: Promise<{ customerId: string }>;
+  params: Promise<{ customerId: number }>;
 }) {
-  const photocustomerId = (await params).customerId;
-  const customer = await getCustomerById(photocustomerId);
-  // const pdfurl = customer?.pdfUrl?.toLocaleString()
-  
+  const { customerId } = await params;
+
+  // Ensure customerId is an integer (parse it if necessary)
+  const id = parseInt(customerId.toString(), 10); // Force conversion to number
+
+  if (isNaN(id)) {
+    return <div>Error: Invalid customer ID</div>; // Handle invalid ID
+  }
+
+  const customer = await getCustomerById(id);
+
+  if (!customer) {
+    return <div>Customer not found</div>; // Handle no customer found
+  }
+
   console.log("222")
   return (
     <Modal>
@@ -57,7 +68,7 @@ export default async function PhotoModal({
 
           <div>
             <a
-              href={`/customer/${photocustomerId}`}
+              href={`/customer/${customerId}`}
               className="inline-block mt-4 bg-blue-500 text-white text-sm px-4 py-2 rounded hover:bg-blue-600"
             >
               View Profile
