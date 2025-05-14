@@ -13,7 +13,7 @@ import CustomerInvoiceList from "@/components/ui/customerInvoice";
 export default async function PhotoPage({
   params,
 }: {
-  params: { customerId: string };
+  params: { customerId: number };
 }) {
   const customerId = params.customerId;
   const customer = await getCustomerById(customerId);

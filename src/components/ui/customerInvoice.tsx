@@ -45,7 +45,7 @@ export default function CustomerInvoiceList({
   customerName,
   mobileNo,
 }: {
-  customerId: string;
+  customerId: number;
   customerName: string;
   mobileNo: string;
 }) {
