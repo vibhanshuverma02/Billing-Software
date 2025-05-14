@@ -16,7 +16,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Form, FormItem, FormLabel} from "@/components/ui/form";
 import { toast } from "sonner";
 import axios, { AxiosError } from "axios";
-import { useState, useEffect,  useReducer, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect,  useReducer, useRef, useCallback } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import StockSelect from "@/components/ui/stockselection";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
@@ -92,7 +92,7 @@ const reducer = (state:State, action:Action) => {
       return state;
   }
 };
-const test = () => {
+const Test = () => {
   const { data: session, status } = useSession();  // ✅ Fetch session
  const [username, setUsername] = useState<string | null>(null);
  const [customerID, setCustomerID]=useState<string|null>(null);
@@ -272,7 +272,7 @@ useEffect(() => {
   // ✅ Correct: Remove calculateTotals from dependencies to avoid infinite loop
   useEffect(() => {
     calculateTotals();
-  }, [paidamount, fields, previous,]);
+  }, [paidamount, fields, previous,calculateTotals]);
   
   const [selectedStock, setSelectedStock] = useState<InvoiceFormData["items"][number] |  null>(null);
   const [quantity, setQuantity] = useState<number>(1);
@@ -725,4 +725,4 @@ useEffect(() => {
 
 };
 
-export default test;
+export default Test;

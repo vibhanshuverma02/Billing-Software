@@ -122,7 +122,7 @@ const InvoicePDF = ({
   paymentStatus,
 }: InvoicePDFProps) => (
     <Document>
-   <Page size={{ width: 396, height: 612 }} style={styles.page}>
+    <Page size="A3" style={styles.page}>
     <View style={{ alignItems: 'center', justifyContent: 'center', marginTop: 20 }}>
   <Text style={{ fontWeight: 'bold', fontSize: 16 }}>kukreja saree center</Text>
   <Text style={{ fontWeight: 'bold', fontSize: 16 }}>Address: Main market roorkee</Text>

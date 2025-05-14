@@ -1,7 +1,7 @@
 "use client";
 
 import "@/app/globals.css";
-import { Inter } from "next/font/google";
+// import { Inter } from "next/font/google";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 import { ModeToggle } from "@/components/ui/mode-toggle";
 import Sidebar from "@/components/ui/sidebar";
@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 
-const inter = Inter({ subsets: ["latin"] });
+// const inter = Inter({ subsets: ["latin"] });
 export default function RootLayout({
   children,
 }: {
