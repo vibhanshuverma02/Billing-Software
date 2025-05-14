@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { stockSchema } from './stockSchema';
+
 
   // ✅ Define schema with an array of items
   export const invoiceschema = z.object({

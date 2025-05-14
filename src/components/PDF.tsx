@@ -1,6 +1,6 @@
 "use client";
 import { Page, Text, View, Document, StyleSheet, Font } from '@react-pdf/renderer';
-import fs from 'fs';
+
 interface InvoicePDFProps {
   invoiceNo: string;
   date: string;
@@ -108,7 +108,7 @@ const InvoicePDF = ({
 
   invoiceNo,
   date,
-  username,
+  
   customerID,
   customerName,
   mobileNo,
@@ -133,6 +133,7 @@ const InvoicePDF = ({
       
       {/* ✅ Header Section */}
       <View style={styles.header}>
+        
         <Text>Invoice No: {invoiceNo}</Text>
         <Text>Date: {new Date(date).toLocaleString()}</Text>
         <Text style={{ fontWeight: 'bold', fontSize: 16 }}>GST: SN0987BN87522</Text>

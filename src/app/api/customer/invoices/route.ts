@@ -119,7 +119,7 @@ import { NextResponse } from 'next/server';
   
       for (const invoice of unpaidInvoices) {
         if (remainingAmount <= 0) break;
-        let balance = invoice.balanceDue - invoice.previousDue;
+        const balance = invoice.balanceDue - invoice.previousDue;
         const toPay = Math.min(balance, remainingAmount);
         remainingAmount -= toPay;
       

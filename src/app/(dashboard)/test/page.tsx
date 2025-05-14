@@ -264,11 +264,7 @@ useEffect(() => {
   form.setValue("paidAmount", paidamount);
 }, [paidamount, form]);
 
-  const handlePaidAmountFocus = () => {
-  if (paidamount === 0) {
-    setPaidamount(NaN);
-  }
-};
+  
   // ✅ Correct: Remove calculateTotals from dependencies to avoid infinite loop
   useEffect(() => {
     calculateTotals();
@@ -313,14 +309,14 @@ useEffect(() => {
   };
   
 
-  // ✅ Clear Form
-  const clearForm = () => {
-    form.reset();
-    form.setValue("Grandtotal", 0)
-    setGstTotal(0);
-    setBalanceDue(null);
-    setPaymentStatus(null);
-  };
+  // // ✅ Clear Form
+  // const clearForm = () => {
+  //   form.reset();
+  //   form.setValue("Grandtotal", 0)
+  //   setGstTotal(0);
+  //   setBalanceDue(null);
+  //   setPaymentStatus(null);
+  // };
 
   
 
@@ -356,7 +352,7 @@ useEffect(() => {
           invoiceId:newInvoice.id,
           invoiceNo: newInvoice.invoiceNo,
           date: newInvoice.invoiceDate,
-          customerID: newCustomer.id,
+          // customerID: newCustomer.id,
           grandTotal: formData.Grandtotal,
           paidAmount: formData.paidAmount,
           balanceDue: response.data.balanceDue,
@@ -389,7 +385,7 @@ useEffect(() => {
     invoiceId,
     invoiceNo,
     date,
-    customerID,
+   // customerID,
     grandTotal,
     // gstTotal,
    
@@ -397,10 +393,10 @@ useEffect(() => {
     balanceDue,
     paymentStatus,
   }: {
-    invoiceId:Number;
+    invoiceId:number;
     invoiceNo: string;
     date: string;
-    customerID: string ;
+   // customerID: string ;
     grandTotal: number;
     // gstTotal:   number;
    
@@ -420,7 +416,7 @@ useEffect(() => {
         invoiceNo={invoiceNo}
         date={date}
         username={username||"NA"}
-        customerID={customerID}
+customerID={customerID || "NA"}
         customerName={state.customername}
         mobileNo={state.customermobileNo}
         address={form.getValues("address") || "NA"}

@@ -4,15 +4,7 @@ import { useState } from "react";
 import { Scanner, useDevices, outline, boundingBox, centerText } from "@yudiel/react-qr-scanner";
 import { fetchStockItemFromBarcode, StockItem } from "./barcode";
 
-const styles = {
-    container: {
-      width: 400,
-      margin: "auto",
-    },
-    controls: {
-      marginBottom: 8,
-    },
-  };
+
   
 interface Props {
   onSelect: (item: StockItem) => void;

@@ -2,12 +2,11 @@ import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { useDebounce } from 'use-debounce';
 
-interface DebouncedInputProps {
+interface DebouncedInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   value: number;
   onDebouncedChange: (value: number) => void;
   delay?: number;
   onTotalCalculate: () => void;
-  [key: string]: any;
 }
 
 const DebouncedInput: React.FC<DebouncedInputProps> = ({

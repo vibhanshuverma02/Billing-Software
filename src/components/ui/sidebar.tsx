@@ -1,9 +1,9 @@
 "use client";
 
 import {
-  Bell,
+ 
   Home,
-  LineChart,
+  
   Package,
   Package2,
   ShoppingCart,

@@ -4,7 +4,7 @@ import { CreateEmployeeInput, CreateEmployeeSchema } from "@/schema/employeesche
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import axios from "axios";
-import { useState } from "react";
+
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";

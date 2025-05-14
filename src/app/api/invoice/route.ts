@@ -240,7 +240,7 @@ if (
    if ( balanceDue<0){
        balanceDue =0 ;
    }
-      const [newInvoice, updatedCustomer] = await prisma.$transaction([
+      const [newInvoice,] = await prisma.$transaction([
         prisma.invoice.create({
           data: {
             username,

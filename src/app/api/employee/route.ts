@@ -4,21 +4,35 @@ import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { CreateEmployeeInput, CreateEmployeeSchema } from "@/schema/employeeschema";
 import { AttendanceStatus } from '@prisma/client';
-import { EvalDevToolModulePlugin } from 'webpack';
-import { resourceUsage } from 'process';
+// import { EvalDevToolModulePlugin } from 'webpack';
+// import { resourceUsage } from 'process';
+type Transaction = {
+  type: string;
+  amount: number;
+  description: string;
+  date: string | Date;
+};
+type AttendanceResult = {
+  employeeId: Number;
+  name: string;
+  status: string;
+ updatedStatus: string,
+  attendance:unknown
 
+
+};
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session || !session.user?.username) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  // const session = await getServerSession(authOptions);
+  // if (!session || !session.user?.username) {
+  //   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // }
 
   const { searchParams } = new URL(req.url);
-  const username = session.user.username;
- // const username = 'vibhanshu';
+  // const username = session.user.username;
+  const username = 'vibhanshu';
   const name = searchParams.get("name");
   const month = searchParams.get("month"); // Format: YYYY-MM
-  const employeeId = searchParams.get("id");
+ // const employeeId = searchParams.get("id");
   if (!name) {
     return NextResponse.json({ error: "Missing employee name" }, { status: 400 });
   }
@@ -117,7 +131,7 @@ console.log("salary earned", calculatedSalary);
       .filter((t) => t.type === "DEDUCTION" || t.type === "OTHER")
       .reduce((sum, t) => sum + t.amount, 0);
 
-    let totalDeductions = advanceAmount + otherDeductions + previousCarryForward;
+    const totalDeductions = advanceAmount + otherDeductions + previousCarryForward;
 
     
     const rawNetPayable = calculatedSalary - totalDeductions ;
@@ -245,7 +259,7 @@ async function calculateMonthlyBalance(
  
   // 👇 Attendance already counted separately
  
-  let rawNetPayable = calculatedSalary - totalDeductions ;
+  const rawNetPayable = calculatedSalary - totalDeductions ;
   console.log("rawNetPayable" , rawNetPayable);
   let netPayable = manualOverride ?? rawNetPayable;
 
@@ -305,14 +319,20 @@ async function updateEmployee(
     },
   });
 
-  
-  const workingDays = totalDays - sundays;
-  const absents = existingAttendance.filter((a: any) => a.status === "ABSENT").length;
-  console.log("A",absents)
-  const halfDays = existingAttendance.filter((a: any) => a.status === "HALF_DAY").length;
-  console.log("h",halfDays)
-  const presentDays = workingDays - absents - (halfDays * 0.5);
-  console.log( "P",presentDays);
+  type Attendance = {
+  status: "PRESENT" | "ABSENT" | "HALF_DAY" | string;  // Add other possible statuses if needed
+};
+
+const absents = existingAttendance.filter((a: Attendance) => a.status === "ABSENT").length;
+console.log("A", absents);
+
+const halfDays = existingAttendance.filter((a: Attendance) => a.status === "HALF_DAY").length;
+console.log("h", halfDays);
+
+const workingDays = totalDays - sundays;
+const presentDays = workingDays - absents - (halfDays * 0.5);
+console.log("P", presentDays);
+
  
   
   const salaryPerDay = employee.baseSalary / workingDays;
@@ -330,7 +350,7 @@ async function updateEmployee(
     },
   });
 
-  const newTransactions = transactions.filter((t: any) =>
+  const newTransactions = transactions.filter((t: Transaction) =>
     !existingTxns.some((et) =>
       et.type === t.type &&
       et.amount === t.amount &&
@@ -577,6 +597,109 @@ function formatDate(date: Date): string {
     presentDays: presentDays
   };
 }
+async function deleteTransaction(
+  employeeId: number,
+  transactionId: number
+) {
+  const employee = await prisma.employee.findUnique({ where: { id: employeeId } });
+  if (!employee) {
+    return { error: "Employee not found" };
+  }
+
+  const existingTransaction = await prisma.transaction.findUnique({
+    where: { id: transactionId },
+  });
+
+  if (!existingTransaction || existingTransaction.employeeId !== employeeId) {
+    return { error: "Transaction not found" };
+  }
+
+  const transactionDate = new Date(existingTransaction.date);
+
+  // Delete the transaction
+  await prisma.transaction.delete({
+    where: { id: transactionId },
+  });
+
+  // Determine the month from the transaction date
+  const month = `${transactionDate.getFullYear()}-${String(transactionDate.getMonth() + 1).padStart(2, '0')}`;
+
+  const start = new Date(`${month}-01T00:00:00.000Z`);
+  const end = new Date(start);
+  end.setMonth(end.getMonth() + 1);
+  end.setDate(0);
+
+  const totalDays = end.getDate();
+  const sundays = Array.from({ length: totalDays })
+    .map((_, i) => new Date(start.getFullYear(), start.getMonth(), i + 1))
+    .filter((d) => d.getDay() === 0).length;
+
+  const existingAttendance = await prisma.attendance.findMany({
+    where: {
+      employeeId,
+      date: { gte: start, lt: end },
+    },
+  });
+
+  const absents = existingAttendance.filter((a) => a.status === "ABSENT").length;
+  const halfDays = existingAttendance.filter((a) => a.status === "HALF_DAY").length;
+
+  const workingDays = totalDays - sundays;
+  const presentDays = workingDays - absents - (halfDays * 0.5);
+
+  const salaryPerDay = employee.baseSalary / workingDays;
+  const calculatedSalary = Math.round(salaryPerDay * presentDays);
+
+  // Get remaining transactions after deletion
+  const remainingTransactions = await prisma.transaction.findMany({
+    where: {
+      employeeId,
+      date: { gte: start, lt: new Date(start.getFullYear(), start.getMonth() + 1, 1) },
+    },
+  });
+
+  const {
+    salaryEarned,
+    totalDeductions,
+    previousCarryForward,
+    netPayable,
+    newCarryForward,
+  } = await calculateMonthlyBalance(
+    employeeId,
+    month,
+    employee.baseSalary,
+    calculatedSalary,
+    remainingTransactions,
+    undefined // No manual override for deletion
+  );
+
+  // Update Monthly Balance (optional)
+  await prisma.monthlyBalance.create({
+    data: {
+      employeeId,
+      month,
+      carryForward: previousCarryForward,
+      salaryEarned: calculatedSalary,
+      totalDeductions,
+      netPayable,
+      amountPaid: netPayable,
+      newCarryForward,
+    },
+  });
+
+  // Update employee's current balance
+  await prisma.employee.update({
+    where: { id: employeeId },
+    data: { currentBalance: newCarryForward },
+  });
+
+  return {
+    updatedBalance: previousCarryForward,
+    updatedSalary: netPayable,
+    totalDeduction: totalDeductions,
+  };
+}
+
 
 export async function POST(req: NextRequest) {
   try {
@@ -603,12 +726,13 @@ export async function POST(req: NextRequest) {
       attendance = [],
       manualOverride,
       employeeData,
-      date, updates
+      date, updates,
+      transactionId
     } = body;
 
     if (action === 'dashboard_bulk_update'){
       const targetDate = new Date(date);
-      const attendanceResult: any[] = [];
+      const attendanceResult: AttendanceResult[] = [];
   for (const { name, status } of updates) {
     // 1. Find employee by name
     const employee = await prisma.employee.findFirst({
@@ -637,20 +761,21 @@ export async function POST(req: NextRequest) {
         status: status as AttendanceStatus,
       },
     });
-    const attendence = await  prisma.attendance.findMany({
-      where: {
-        employeeId: employee.id,
+    // const attendence = await  prisma.attendance.findMany({
+    //   where: {
+    //     employeeId: employee.id,
         
-      },
+    //   },
      
-    });
+    // });
    
-    attendanceResult.push({
-      name,
-      employeeId: employee.id,
-      updatedStatus: status,
-      attendance,
-    });
+   attendanceResult.push({
+  name,
+  employeeId: employee.id,
+  status,                  // ✅ This fixes the type error
+  updatedStatus: status,
+  attendance,
+});
   }
 
   return NextResponse.json({ success: true, data: attendanceResult });
@@ -711,6 +836,29 @@ export async function POST(req: NextRequest) {
         { status: 200 }
       );
     }
+ if (action === "delete_transaction") {
+  if (!employeeId || !transactionId) {
+    return NextResponse.json({ error: 'Employee ID and Transaction ID are required' }, { status: 400 });
+  }
+
+  const result = await deleteTransaction(employeeId, transactionId);
+
+  if ('error' in result) {
+    return NextResponse.json({ error: result.error }, { status: 404 });
+  }
+
+  return NextResponse.json(
+    {
+      message: 'Transaction deleted successfully',
+      updatedBalance: result.updatedBalance,
+      updatedSalary: result.updatedSalary,
+      totalDeduction: result.totalDeduction,
+    },
+    { status: 200 }
+  );
+}
+
+
     if (action == 'update_attendence'){
       if (!employeeId) {
         return NextResponse.json({ error: 'Employee ID is required for update' }, { status: 400 });

@@ -46,26 +46,27 @@ export default function PurchaseMangentPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    console.log("Fetching dealer for", dealerId, categoryId);
+  console.log("Fetching dealer for", dealerId, categoryId);
 
-    const fetchDealer = async () => {
-      try {
-        const res = await axios.get("/api/dealer", {
-          params: { dealerId, categoryId },
-        });
-        console.log("API Response:", res.data);
-        setDealer({ ...res.data.dealer});
-           console.log(res.data.dealer.pdfBase64);
+  const fetchDealer = async () => {
+    try {
+      const res = await axios.get("/api/dealer", {
+        params: { dealerId, categoryId },
+      });
+      console.log("API Response:", res.data);
+      setDealer({ ...res.data.dealer});
+      console.log(res.data.dealer.pdfBase64);
 
-      } catch (error) {
-        console.error("Error fetching dealer:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    } catch (error) {
+      console.error("Error fetching dealer:", error);
+      setError("Failed to fetch dealer data.");  // ✅ Add this line
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchDealer();
-  }, [dealerId, categoryId]);
+  fetchDealer();
+}, [dealerId, categoryId]);
 
   if (loading) return <p>Loading...</p>;
   if (!dealer) return <p>No dealer data</p>;

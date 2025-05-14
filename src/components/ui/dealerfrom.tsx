@@ -107,11 +107,15 @@ export default function DealerForm() {
       form.setValue('categoryName', created.name);
       setNewCategory('');
       setCreatingCategory(false);
-    } catch (err: any) {
-      alert(err?.response?.data?.message || 'Error creating category');
-    } finally {
-      setCreatingCatLoading(false);
+    } catch (e: unknown) {
+    if (axios.isAxiosError(e)) {
+      alert(e.response?.data?.message || 'Error creating category');
+    } else {
+      alert('Unknown error occurred');
     }
+  } finally {
+    setCreatingCatLoading(false);
+  }
   };
 
 
@@ -122,9 +126,13 @@ export default function DealerForm() {
       await axios.post('/api/dealer', data);
       form.reset();
       setMessage('Dealer created');
-    } catch (e: any) {
-      setMessage(e?.response?.data?.message || 'Error');
+    } catch (e: unknown) {
+    if (axios.isAxiosError(e)) {
+      setMessage(e.response?.data?.message || 'Error');
+    } else {
+      setMessage('Unknown error occurred');
     }
+  }
   };
 
   const handleBillSubmit = async (data: BillFormData) => {
@@ -158,9 +166,14 @@ export default function DealerForm() {
       billForm.reset();
       setFile(null);
       setMessage('Bill created');
-    } catch (e: any) {
-      setMessage(e?.response?.data?.message || 'Error');
-    }
+      setLoading(false)
+    } catch (e: unknown) {
+  if (axios.isAxiosError(e)) {
+    setMessage(e.response?.data?.message || 'Error');
+  } else {
+    setMessage('Unknown error occurred');
+  }
+}
   };
 
   return (

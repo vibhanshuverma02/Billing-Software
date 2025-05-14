@@ -4,7 +4,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '../auth/[...nextauth]/options'; // Adjust path based on your project
 import { generatePdfBase64FromImage } from '@/helpers/image-pdf';
 import ExcelJS from 'exceljs';
-import { format } from 'date-fns';
+// import { format } from 'date-fns';
 
 export async function GET(req: NextRequest) {
    try {
