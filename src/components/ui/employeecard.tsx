@@ -134,7 +134,6 @@ export default function EmployeeCard({
   employee,
   month, // ✅ controlled from parent as Date
   onMonthChange,
-  onRefresh,
   attendance,
   calculatedSalary,
   transactions,

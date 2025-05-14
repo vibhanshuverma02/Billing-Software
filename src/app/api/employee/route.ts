@@ -7,11 +7,14 @@ import { AttendanceStatus } from '@prisma/client';
 // import { EvalDevToolModulePlugin } from 'webpack';
 // import { resourceUsage } from 'process';
 type Transaction = {
-  type: string;
+  id: number;
+  employeeId: number;
   amount: number;
-  description: string;
-  date: string | Date;
+  type: 'SALARY' | 'ADVANCE' | 'DEDUCTION' | 'OTHER';
+  description?: string| null;
+  date: Date;
 };
+
 type AttendanceResult = {
   employeeId: Number;
   name: string;
@@ -215,7 +218,7 @@ async function calculateMonthlyBalance(
   month: string,
   baseSalary: number,
   calculatedSalary:number,
-  transactions: any[],
+  transactions: Transaction[],
   
   manualOverride?: number
 ) {
@@ -282,9 +285,8 @@ async function calculateMonthlyBalance(
 
 async function updateEmployee(
   employeeId: number,
-  transactions: any[],
+  transactions: Transaction[],
   month: string,
-  attendance: any[],
   manualOverride: number | undefined
 ) {
   const employee = await prisma.employee.findUnique({ where: { id: employeeId } });
@@ -362,7 +364,7 @@ console.log("P", presentDays);
   const allTxns = [...existingTxns, ...newTransactions];
 
   const {
-    salaryEarned,
+    
     totalDeductions,
     previousCarryForward,
     netPayable,
@@ -547,7 +549,7 @@ function formatDate(date: Date): string {
    .filter((t) => t.type === "DEDUCTION" || t.type === "OTHER")
    .reduce((sum, t) => sum + t.amount, 0);
 
- let totalDeductions = advanceAmount + otherDeductions + previousCarryForward;
+ const totalDeductions = advanceAmount + otherDeductions + previousCarryForward;
 
 
  const rawNetPayable = calculatedSalary - totalDeductions ;
@@ -659,7 +661,7 @@ async function deleteTransaction(
   });
 
   const {
-    salaryEarned,
+   
     totalDeductions,
     previousCarryForward,
     netPayable,
@@ -815,7 +817,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Employee ID is required for update' }, { status: 400 });
       }
   
-      const result = await updateEmployee(employeeId, transactions, month ,attendance, manualOverride);
+      const result = await updateEmployee(employeeId, transactions, month , manualOverride);
   
       if ('error' in result) {
         return NextResponse.json({ error: result.error }, { status: 404 });

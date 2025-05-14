@@ -334,7 +334,7 @@ useEffect(() => {
     try {
       const response = await axios.post("/api/invoice", formData);
       const newInvoice = response.data.invoice;
-      const newCustomer = response.data.customer;
+      // const newCustomer = response.data.customer;
       
       console.log("API Response:", response.data);
      
