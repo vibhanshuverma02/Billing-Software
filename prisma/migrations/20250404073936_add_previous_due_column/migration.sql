@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "invoices" ADD COLUMN     "previousDue" DOUBLE PRECISION NOT NULL DEFAULT 0.0;

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { stockSchema } from './stockSchema';
 
   // ✅ Define schema with an array of items
   export const invoiceschema = z.object({
@@ -12,7 +13,12 @@ import { z } from 'zod';
     Grandtotal: z.coerce.number().positive("Total amount must be positive"),
     // gstTotal:z.coerce.number(),
     paidAmount: z.coerce.number().nonnegative("Paid amount cannot be negative"),
-    // balanceDue: z.coerce.number().nonnegative("Balancedue amount cannot be negative"),
+    previous: z.coerce.number().nonnegative("Balancedue amount cannot be negative"),
+    SuperTotal: z.coerce.number(),
+     Refund:z.coerce.number(),
+    //  selectedStock: z.union([z.null(), stockSchema.shape.items]), // Make sure this matches selectedStock in your type
+    //  formQuantity: z.number().min(0), // Ensure this matches formQuantity in your type
+    //  formGstRate: z.number().min(0), // Ensure this matches formGstRate in your type
     // paymentStatus:z.string()
 
   

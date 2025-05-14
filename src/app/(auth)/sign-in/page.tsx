@@ -20,7 +20,7 @@ import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { signInSchema } from '@/schema/signInSchema';
 import { signIn } from 'next-auth/react';
-
+import SessionLogger from '@/components/ui/session_logger';
 export default function SignInForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
@@ -49,7 +49,7 @@ export default function SignInForm() {
           : result.error
       );
     } else if (result?.url) {
-      router.replace('/test');
+      router.replace('/dashboard');
     }
 
     setIsSubmitting(false);
@@ -60,6 +60,7 @@ export default function SignInForm() {
       <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow-md">
         <div className="text-center">
           <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl mb-6">
+                  <SessionLogger />
             Billing Counter 
           </h1>
           <p className="mb-4">Sign in</p>

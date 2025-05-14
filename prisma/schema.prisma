@@ -3,71 +3,235 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
 model User {
-  id                String   @id @default(cuid())
-  username          String   @unique
-  email             String   @unique
-  phoneNumber       String   @unique        // Default phone number
-  password          String
-  verifyCode        String                  // Default verification code
-  verifyCodeExpiry  DateTime @default(now())  // Set default expiry to current time
-  isVerified        Boolean  @default(false)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt      // Fixed casing for consistency
-  customers         Customer[]              // One-to-many relationship with customers
-  invoices          Invoice[]               // One-to-many relationship with invoices
+  id               String     @id @default(cuid())
+  username         String     @unique
+  email            String     @unique
+  phoneNumber      String     @unique // Default phone number
+  password         String
+  verifyCode       String // Default verification code
+  verifyCodeExpiry DateTime   @default(now()) // Set default expiry to current time
+  isVerified       Boolean    @default(false)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt // Fixed casing for consistency
+  customers        Customer[] // One-to-many relationship with customers
+  invoices         Invoice[] // One-to-many relationship with invoices
+  Stock            Stock[]
+  employees        Employee[]
+  dealers          Dealer[]   // Relation to Dealer
+  category         Category[]
 }
 
 model Customer {
-  id               Int       @id @default(autoincrement())
-  username         String                                 // Foreign key reference to User
-  customerName     String                                 // CamelCase for consistency
-  mobileNo         String?                                // Optional field
-  address          String?                                // Optional field
-  balance          Float    @default(0.00)                 // Default balance
-  status           String   @default("Active")             // Active/Inactive status
-  createdAt        DateTime @default(now())                // Timestamp of creation
-  updatedAt        DateTime @updatedAt                     // Auto-updated timestamp
-  pdfUrl           String                                 // ✅ PDF URL field
+  id           Int      @id @default(autoincrement())
+  username     String // Foreign key reference to User
+  customerName String // CamelCase for consistency
+  mobileNo     String? // Optional field
+  address      String? // Optional field
+  balance      Float    @default(0.00) // Default balance
+  status       String   @default("Active") // Active/Inactive status
+  createdAt    DateTime @default(now()) // Timestamp of creation
+  updatedAt    DateTime @updatedAt // Auto-updated timestamp
 
-  invoices         Invoice[]                               // One-to-many relationship with invoices
+  invoices Invoice[] // One-to-many relationship with invoices
 
-  user             User     @relation(fields: [username], references: [username])
+  user           User                     @relation(fields: [username], references: [username])
+  paymentHistory CustomerPaymentHistory[]
 
   @@index([username])
   @@map("customers")
 }
 
 model Invoice {
-  id               Int       @id @default(autoincrement())
-  username         String                                 // Foreign key reference to User
-  customerId       Int                                    // Foreign key reference to Customer
-  customerName     String                                 // Foreign key reference to Customer
-  invoiceNo        String                                 // Unique invoice number
-  totalAmount      Float                                  // Total invoice amount
-  paidAmount       Float                                  // Amount paid by customer
-  balanceDue       Float                                  // Remaining balance
-  paymentStatus    String    @default("Due")               // Payment status: Due, Partial, Paid
-  invoiceDate      DateTime  @default(now())               // Invoice creation date
+  id            Int      @id @default(autoincrement())
+  username      String // Foreign key reference to User
+  customerId    Int // Foreign key reference to Customer
+  customerName  String // Foreign key reference to Customer
+  invoiceNo     String // Unique invoice number
+  totalAmount   Float // Total invoice amount
+  supertotal    Float    @default(0.0) // total till the date 
+  paidAmount    Float // Amount paid by customer
+  previousDue   Float    @default(0.0) // previous due from previous bills               
+  balanceDue    Float // Remaining balance
+  paymentStatus String   @default("Due") // Payment status: Due, Partial, Paid
+  refund        Float    @default(0.0) // refund money
+  invoiceDate   DateTime @default(now()) // Invoice creation date
+  pdfUrl        Bytes? // ✅ PDF URL field
 
-  customer         Customer  @relation(fields: [customerId], references: [id])
-  user             User      @relation(fields: [username], references: [username])
+  customer Customer @relation(fields: [customerId], references: [id])
+  user     User     @relation(fields: [username], references: [username])
 
   @@index([customerId])
   @@map("invoices")
 }
+
 model Stock {
   id        Int      @id @default(autoincrement())
-  username   String   // Foreign key reference to User
+  username  String // Foreign key reference to User
   itemName  String
   hsn       String
   rate      Float
+    barcode   String?  @unique  // ✅ Optional but unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  user     User     @relation(fields: [username], references: [username])
+
 }
 
+model CustomerPaymentHistory {
+  id           Int      @id @default(autoincrement())
+  customerId   Int
+  amountPaid   Float
+  remainingDue Float // customer ka remaining balance after payment
+  paidAt       DateTime @default(now())
+
+  customer Customer @relation(fields: [customerId], references: [id])
+}
+model Employee {
+  id               Int           @id @default(autoincrement())
+  username         String        // Foreign key to User
+  name             String
+  phone            String?
+  photoPath        String?
+  joiningDate      DateTime
+  baseSalary       Float
+  currentBalance   Float         // Carry-forward dues (-ve if advance given)
+  manualOverride   Float?        // Optional: requested salary override for current month
+
+  loanAmount       Float?        // Original loan amount
+  loanRemaining    Float?        // Remaining loan balance
+  loanStartMonth   String?       // "YYYY-MM" format
+  
+  emiAmount        Float?        // Monthly EMI to deduct
+
+  user             User          @relation(fields: [username], references: [username])
+  transactions     Transaction[]
+  attendance       Attendance[]
+  monthlyBalances    MonthlyBalance[] 
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@index([username])
+  @@map("employees")
+}
+
+
+model MonthlyBalance {
+  id            Int      @id @default(autoincrement())
+  employeeId    Int
+  month         String   // "2025-03"
+  carryForward  Int      // jo March se aya tha
+  salaryEarned  Int      // is mahine ka calculated salary
+  totalDeductions Int    // advance + other deductions
+  netPayable    Int      // kitna dena tha
+  amountPaid    Int      // kitna diya gaya
+  newCarryForward Int    // next month ke liye kya bacha
+  createdAt     DateTime @default(now())
+
+  employee      Employee @relation(fields: [employeeId], references: [id])
+   @@map("monthlyBalances")
+   
+}
+
+
+model Transaction {
+  id           Int       @id @default(autoincrement())
+  employeeId   Int
+  amount       Float
+  type         TransactionType
+  description  String?
+  date         DateTime  @default(now())
+
+  employee     Employee  @relation(fields: [employeeId], references: [id])
+
+  @@map("transactions")
+}
+
+enum TransactionType {
+  SALARY
+  ADVANCE
+  DEDUCTION
+  OTHER
+}
+
+model Attendance {
+  id           Int       @id @default(autoincrement())
+  employeeId   Int
+  date         DateTime
+  status       AttendanceStatus
+
+  employee     Employee  @relation(fields: [employeeId], references: [id])
+
+  @@unique([employeeId, date]) // One record per day
+  @@map("attendance")
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  HALF_DAY
+  LEAVE
+}
+
+
+model Category {
+  id       Int      @id @default(autoincrement())
+  userId     String
+  name     String   @unique
+  dealers  Dealer[]
+  bills    Bill[]
+  user       User      @relation(fields: [userId], references: [id])
+
+}
+
+model Dealer {
+  id         Int       @id @default(autoincrement())
+  user       User      @relation(fields: [userId], references: [id])
+  userId     String
+  name       String
+  contact    String
+  address    String
+  category   Category  @relation(fields: [categoryId], references: [id])
+  categoryId Int
+  
+  payments   Payment[]
+  bills      Bill[]
+}
+
+model Payment {
+  id        Int      @id @default(autoincrement())
+  amount    Float
+  date      DateTime @default(now())
+  chequeNo  String   // <- made required
+  uniqueNo  String
+  dealer    Dealer   @relation(fields: [dealerId], references: [id])
+  dealerId  Int
+
+  bill      Bill     @relation(fields: [chequeNo, uniqueNo], references: [chequeNo, uniqueNo])
+
+  @@index([date])
+  @@index([dealerId])
+}
+
+model Bill {
+  id          Int      @id @default(autoincrement())
+  uniqueNo    String
+  chequeNo    String    // <- made required
+  totalAmount Float
+  less        Float
+  pdfBase64   String?
+  date        DateTime  @default(now())
+  category    Category  @relation(fields: [categoryId], references: [id])
+  categoryId  Int
+  dealer      Dealer    @relation(fields: [dealerId], references: [id])
+  dealerId    Int
+
+  payments    Payment[]
+
+  @@unique([chequeNo, uniqueNo]) // <- fixed syntax
+}

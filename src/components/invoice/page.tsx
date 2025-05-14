@@ -1,180 +1,134 @@
 "use client";
-//import dynamic from "next/dynamic";
 import { useSession } from "next-auth/react";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { stockSchema } from "@/schema/stockSchema";
 import { invoiceschema } from "@/schema/invoiceschema";
-import { pdf } from "@react-pdf/renderer";  // ✅ Import PDFDownloadLink
-import InvoicePDF from  "@/components/PDF" ; 
-import { saveAs } from "file-saver";   // ✅ Import he PDF component
+
+
 import { z } from "zod";
 import { Loader2, Trash2 } from 'lucide-react';
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Form, FormItem, FormLabel} from "@/components/ui/form";
+import { Form, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { toast } from "sonner";
 import axios, { AxiosError } from "axios";
-import { useState, useEffect,  useReducer, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import StockSelect from "@/components/ui/stockselection";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
-
+// import BarcodeSelect from "../ui/barcode";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 // import { useDebounceCallback, useDebounceValue } from "usehooks-ts";
 import { ApiResponse } from "@/type/ApiResponse";
-// import { Item } from "@radix-ui/react-select";
-
-
-// ✅ Lazy load PDFDownloadLink to avoid SSR issues
-// ✅ Use ESM-friendly import for PDFDownloadLink
-// const PDFDownloadLinkNoSSR = dynamic(
-//   () =>
-//     import("@react-pdf/renderer").then((mod) => {
-//       return mod.PDFDownloadLink;
-//     }),
-//   { ssr: false }
-// );
 
 type InvoiceFormData = z.infer<typeof invoiceschema>& {
   items: z.infer<typeof stockSchema>["items"];
 };
 
-interface State {
-  customername: string;
-  customermobileNo: string;
-  customerdetialsMessage: string;
-  isCheckingCustomer: boolean;
-}
-interface SetNameAction {
-  type: "SET_NAME";
-  payload: string;
-}
-
-interface SetMobileAction {
-  type: "SET_MOBILE";
-  payload: string;
-}
-
-interface SetMessageAction {
-  type: "SET_MESSAGE";
-  payload: string;
-}
-
-interface ToggleLoadingAction {
-  type: "TOGGLE_LOADING";
-  payload: boolean;
-}
-
-type Action = SetNameAction | SetMobileAction | SetMessageAction | ToggleLoadingAction;
-const initialState = {
-  customername: "",
-  customermobileNo: "",
-  customerdetialsMessage: "",
-  isCheckingCustomer: false,
-};
-
-
-
-const reducer = (state:State, action:Action) => {
-  switch (action.type) {
-    case "SET_NAME":
-      return { ...state, customername: action.payload };
-    case "SET_MOBILE":
-      return { ...state, customermobileNo: action.payload };
-    case "SET_MESSAGE":
-      return { ...state, customerdetialsMessage: action.payload };
-    case "TOGGLE_LOADING":
-      return { ...state, isCheckingCustomer: action.payload };
-    default:
-      return state;
-  }
-};
 const InvoiceForm = () => {
   const { data: session, status } = useSession();  // ✅ Fetch session
  const [username, setUsername] = useState<string | null>(null);
- const [customerID, setCustomerID]=useState<string|null>(null);
   const [invoiceNo, setInvoiceNo] = useState<string>("");
   const [date, setDate] = useState<string>("");
   const [gstTotal, setGstTotal] = useState<number>(0);
   const [balanceDue, setBalanceDue] = useState<number | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
- // ✅ Combined customer details state
- const [state, dispatch] = useReducer(reducer, initialState);
- 
 
-  // ✅ useRef for debouncing
-  const debounceRef = useRef<NodeJS.Timeout | null>(null);
-// ✅ Extract username from session
-useEffect(() => {
+   // ✅ Customer Details
+   const [customername, setCustomername] = useState("");
+   const [customermobileNo, setCustomermobileNo] = useState("");
+   const [customerdetialsMessage, setCustomerdetialsMessage] = useState<string>("");
+   const [isCheckingcustomerdetials, setIsCheckingcustomerdetials] = useState(false);
+   const [isValid, setIsValid] = useState(false);  // ✅ Validation state flag
+  //  const debouncedName = useDebounceCallback( setCustomername,300);
+
+  // const debouncedMobile = useDebounceCallback(
+  //   setCustomermobileNo, 300);
+
+
+  
+  useEffect(() => {
   if (status === "authenticated" && session?.user) {
-    console.log("Username:", session.user.username);
+    // ✅ Extract username from session
+    console.log(session.user.username);
     setUsername(session.user.username || "Guest");
   }
 }, [session, status]);
 
-// ✅ Debounced API call
-const debouncedFetch = useCallback((func: () => void, delay: number) => {
-  if (debounceRef.current) clearTimeout(debounceRef.current); // Clear previous timer
-  debounceRef.current = setTimeout(() => {
-    func(); // Execute the API call after the delay
-  }, delay);
-}, []);
 
-// ✅ Combined API Call
-const fetchCustomer = useCallback(async () => {
-  // if (!state.customername.trim() || !state.customermobileNo.trim()) {
-  //   dispatch({ type: "SET_MESSAGE", payload: "Both name and mobile are required." });
-  //   return;
-  // }
+// ✅ Use debouncing to prevent excessive API calls
+const debounce = (func: () => void, delay: number) => {
+  let timer: NodeJS.Timeout;
+  return () => {
+    clearTimeout(timer);
+    timer = setTimeout(func, delay);
+  };
+};
 
-  dispatch({ type: "TOGGLE_LOADING", payload: true });
-  dispatch({ type: "SET_MESSAGE", payload: "" });
+// ✅ Validate Fields before making API call
+const validateFields = () => {
+  if (!customername.trim() ||!customermobileNo.trim()) {
+    setCustomerdetialsMessage("");  
+    console.log("Fields cleared, no message");
+    setIsValid(false);   // ✅ Prevent unnecessary validation message
+    return false;
+  }
+
+  if (customermobileNo && !/^\d{10}$/.test(customermobileNo)) {
+    setCustomerdetialsMessage("Mobile number must be 10 digits.");
+    console.log("Invalid Mobile Number");
+    setIsValid(false);
+    return false;
+  }
+
+  setIsValid(true);  // ✅ Set valid state only if fields pass validation
+  return true;
+};
+
+const fetchCustomers = useCallback(async () => {
+  if (!isValid || status !== "authenticated") return;  // ✅ Skip invalid or unauthenticated requests
+
+  setIsCheckingcustomerdetials(true);
+  setCustomerdetialsMessage("");
 
   try {
-    console.log("Fetching customer...");
+    console.log("API call initiated");
     const response = await axios.get(`/api/invoice`, {
       params: {
-        customerName: state.customername,
-        customermobileNo: state.customermobileNo,
+        customerName: customername || undefined,
+        customermobileNo: customermobileNo || undefined,
       },
     });
 
-    dispatch({
-      type: "SET_MESSAGE",
-      payload: response.data.message || "Customer found!",
-    });
+    console.log("API call successful");
+    setCustomerdetialsMessage(response.data.message);
+    console.log(response.data.customer)
+    setIsValid(false);
   } catch (error) {
+    console.error("Error fetching customers:", error);
     const axiosError = error as AxiosError<ApiResponse>;
-    dispatch({
-      type: "SET_MESSAGE",
-      payload: axiosError.response?.data.message || "Error fetching customer",
-    });
+    setCustomerdetialsMessage(
+      axiosError.response?.data.message ?? 'Error checking username'    );
   } finally {
-    dispatch({ type: "TOGGLE_LOADING", payload: false });
+    setIsCheckingcustomerdetials(false);
   }
-}, [state.customername, state.customermobileNo]);
+}, [customername, customermobileNo, isValid, status]);
 
-// ✅ Single useEffect for Combined API Call
+useEffect(() => {
+  validateFields();
+}, [customername, customermobileNo , validateFields]);  // ✅ Run validation on field changes
 
-  // ✅ useEffect for API Calls and Validation
-  useEffect(() => {
-    if (!state.customername.trim() || !state.customermobileNo.trim()) {
-      // ✅ Clear message when both fields are empty
-      dispatch({ type: "SET_MESSAGE", payload: "" });
-      return;
-    }
+useEffect(() => {
+  if (isValid) {
+    const debouncedFetch = debounce(fetchCustomers, 500);
+    debouncedFetch();
+  }
+}, [isValid, fetchCustomers]);
 
-    if (state.customername.trim() || state.customermobileNo.trim()) {
-      // ✅ Only call API if mobile number is 10 digits
-      if (/^\d{10}$/.test(state.customermobileNo) || !state.customermobileNo) {
-        debouncedFetch(fetchCustomer, 500);
-      }
-    }
-  }, [state.customername, state.customermobileNo, debouncedFetch, fetchCustomer]);
   // ✅ Initialize Form with Zod Schema
   const form = useForm<InvoiceFormData>({
     resolver: zodResolver(
@@ -194,12 +148,17 @@ const fetchCustomer = useCallback(async () => {
       items: []
     },
   });
-  // 
-    const { fields, append, remove, update } = useFieldArray({
+  // const form = useForm<InvoiceFormData>({
+  //   resolver: zodResolver(stockSchema),
+  //   defaultValues: {
+  //    []
+  //   },
+  // });
+
+  const { fields, append, remove, update } = useFieldArray({
     control: form.control,
     name: "items",
   });
-
   const calculateTotals = useCallback(() => {
     const subtotal = fields.reduce((sum, item) => sum + item.rate * item.quantity, 0);
     const gst = fields.reduce((sum, item) => sum + (item.rate * item.quantity * item.gstRate) / 100, 0);
@@ -212,7 +171,7 @@ const fetchCustomer = useCallback(async () => {
 
   useEffect(() => {
     calculateTotals();
-  }, [fields , calculateTotals]);
+  }, [fields]);
 
   const [selectedStock, setSelectedStock] = useState<InvoiceFormData["items"][number] |  null>(null);
   const [quantity, setQuantity] = useState<number>(1);
@@ -227,11 +186,12 @@ const fetchCustomer = useCallback(async () => {
     }
 
     append({
+      // id: selectedStock.id,
       itemName: selectedStock.itemName,
       hsn: selectedStock.hsn,
       rate: selectedStock.rate,
-      quantity,
-      gstRate,
+      quantity:selectedStock.quantity,
+      gstRate: selectedStock.gstRate,
     });
 
     // Reset selection
@@ -253,21 +213,11 @@ const fetchCustomer = useCallback(async () => {
   // ✅ Submit the form
    // ✅ Handle API Submission
   // ✅ Submit the form
-// ✅ Sync reducer state with form data on changes
-useEffect(() => {
-  form.setValue("customerName", state.customername);
-  form.setValue("mobileNo", state.customermobileNo);
-}, [state.customername, state.customermobileNo, form]);
 
 
   const onSubmit = async () => {
-    // form.setValue("customerName", state.customername);
-    
-    // form.setValue("mobileNo", state.customermobileNo);
-
-    // await new Promise((resolve) => setTimeout(resolve, 0)); 
     const formData:InvoiceFormData  = form.getValues();  // Collect entire form data
-    console.log("Updated Form Data:", formData);  // 🔥 Log the form data
+
     console.log("Submitting:", formData);
     setIsSubmitting(true);
 
@@ -278,8 +228,6 @@ useEffect(() => {
       
       setInvoiceNo(response.data.invoice.invoiceNo);
       setDate(response.data.invoice.invoiceDate);
-      setCustomerID(response.data.customer.id);
-      console.log(response.data.customer.id);
       setBalanceDue(response.data.balanceDue);
       setPaymentStatus(response.data.paymentStatus);
 
@@ -300,45 +248,6 @@ useEffect(() => {
       setIsSubmitting(false);
     }
   };
-  const generateAndDownloadPDF = async () => {
-    try {
-      const blob = await pdf(
-        <InvoicePDF invoiceNo={invoiceNo}
-        date={date}
-        username={username || form.getValues("username")}
-        customerID={customerID || "NA"}
-        customerName={state.customername}
-        mobileNo={state.customermobileNo}
-        address={form.getValues("address") || "NA"}
-        items={fields.length > 0
-          ? fields
-          : [{ itemName: "N/A", hsn: "0000", rate: 0, quantity: 0, gstRate: 0 }]}
-        Grandtotal={form.getValues("Grandtotal")}
-        gstTotal={gstTotal}
-        paidAmount={form.getValues("paidAmount")}
-        balanceDue={balanceDue || 0}
-        paymentStatus={paymentStatus || "NA"}/>
-      ).toBlob();
-
-      const fileName = `invoice_${Date.now()}.pdf`;
-      saveAs(blob, fileName);
-
-      // Simulate local path (only for display purposes)
-      const pdfPath = `C:/Users/Client/Downloads/${fileName}`;
-
-      // ✅ Save PDF path to database
-      await axios.put("/api/invoice", {
-        customerId: customerID,
-        pdfPath,
-      });
-
-      alert("PDF generated and path saved!");
-    } catch (error) {
-      console.error("Error generating PDF:", error);
-      alert("Failed to generate PDF.");
-    }
-  };
-
 
   return (
     <div className="p-8 bg-gray-50 min-h-screen">
@@ -368,64 +277,91 @@ useEffect(() => {
 
               {/* Customer Info */}
               <div className="grid grid-cols-3 gap-6">
-      {/* ✅ Customer Name */}
-      <Controller
-        name="customerName"
-        control={form.control}
-        render={({ field }) => (
-          <div>
-            <label>Customer Name</label>
-            <Input
-              {...field}
-              value={state.customername}
-              onChange={(e) => dispatch({ type: "SET_NAME", payload: e.target.value })}
+            {/* ✅ Customer Name */}
+            <Controller
+              name="customerName"
+              control={form.control}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Customer Name</FormLabel>
+                  <Input
+                    {...field}
+                    value={field.value}  // Display field value
+                    onChange={(e) => {
+                      field.onChange(e);   // ✅ Update form field value
+                      const value = e.target.value.trim();
+
+                      // ✅ Clear the message immediately when field is empty
+                      if (value === "") {
+                        setCustomerdetialsMessage("");
+                      } else {
+                        setCustomername(value);
+                      }
+                    }}
+                  />
+                  {isCheckingcustomerdetials && <Loader2 className="animate-spin" />}
+                  {!isCheckingcustomerdetials && customerdetialsMessage && (
+                    <p
+                      className={`text-sm ${
+                       customerdetialsMessage === "Username is unique"
+                          ? "text-green-500"
+                          : "text-red-500"
+                      }`}
+                    >
+                      {customerdetialsMessage}
+                    </p>
+                  )}
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
-        )}
-      />
 
-      {/* ✅ Customer Mobile */}
-      <Controller
-        name="mobileNo"
-        control={form.control}
-        render={({ field }) => (
-          <div>
-            <label>Contact Number</label>
-            <Input
-              {...field}
-              value={state.customermobileNo}
-              onChange={(e) => dispatch({ type: "SET_MOBILE", payload: e.target.value })}
-            />
-          </div>
-        )}
-      />
+            {/* ✅ Customer Mobile */}
+            <Controller
+              name="mobileNo"
+              control={form.control}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Contact Number</FormLabel>
+                  <Input
+                    {...field}
+                    value={field.value}  // Display field value
+                    onChange={(e) => {
+                      field.onChange(e);   // ✅ Update form field value
+                      const value = e.target.value.trim();
 
-      {/* ✅ Loader and Message */}
-      <div className="col-span-3">
-        {state.isCheckingCustomer && <Loader2 className="animate-spin" />}
-        {!state.isCheckingCustomer && state.customerdetialsMessage && (
-          <p
-            className={`text-sm ${
-              state.customerdetialsMessage.includes("New") ? "text-green-500" : "text-red-500"
-            }`}
-          >
-            {state.customerdetialsMessage}
-          </p>
-        )}
-      </div>
-
-      {/* ✅ Customer Address */}
-      <Controller
-        name="address"
-        control={form.control}
-        render={({ field }) => (
-          <div className="col-span-3">
-            <label>Customer Address</label>
-            <Textarea placeholder="Enter customer address" {...field} />
-          </div>
-        )}
+          // ✅ Clear the message immediately when field is empty
+          if (value === "") {
+            setCustomerdetialsMessage("");
+          } else {
+            setCustomermobileNo(value);
+          }
+        }}
       />
-    </div>
+                  {isCheckingcustomerdetials && <Loader2 className="animate-spin" />}
+                  {!isCheckingcustomerdetials && customerdetialsMessage && (
+                    <p
+                      className={`text-sm ${
+                        customerdetialsMessage === 'mobile no is unique'
+                          ? 'text-green-500'
+                          : 'text-red-500'
+                      }`}
+                    >
+                      {customerdetialsMessage}
+                    </p>
+                  )}
+                    <FormMessage />
+                  </FormItem>
+                )} />
+
+                <FormField control={form.control} name="address" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Customer Address</FormLabel>
+                    <Textarea placeholder="Enter customer address" {...field} />
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              </div>
 
                {/* Stock Selection Using StockSelect Component */}
             <div className="flex gap-4 items-center">
@@ -434,6 +370,11 @@ useEffect(() => {
                 <StockSelect
                   onSelect={(stock) => setSelectedStock(stock)}
                 />
+               {/* <BarcodeSelect
+        onSelect={(item) => {
+          append(item); // ✅ Direct append — no state needed
+        }}
+      />         */}
                  <Input
           value={selectedStock ? selectedStock.itemName : ""}
           readOnly
@@ -554,8 +495,40 @@ useEffect(() => {
  <p>Sub Total: ₹{(fields.reduce((sum, item) => sum + item.rate * item.quantity, 0))}</p>
  <p>GST: ₹{gstTotal}</p>
  <p>Grand Total: ₹{form.getValues("Grandtotal")}</p>
-   
- <div className="flex flex-col">
+    {/* <Input 
+      type="number" 
+      value={fields.reduce((sum, item) => sum + item.rate * item.quantity, 0)} 
+      readOnly 
+      className="bg-gray-100"
+    /> */}
+  {/* </div>
+  </div> */}
+
+  {/* GST Total */}
+  {/* <div className="flex flex-col">
+    <FormLabel className="text-gray-600 text-sm">GST Total</FormLabel>
+    <Input 
+      type="number" 
+      value={gstTotal} 
+      readOnly 
+      className="bg-gray-100"
+    />
+  </div> */}
+
+  {/* Grand Total */}
+  {/* <div className="flex flex-col">
+    <FormLabel className="text-gray-600 text-sm font-semibold">Grand Total</FormLabel>
+    <Input 
+      type="number"  
+      {...form.register("Grandtotal", { valueAsNumber: true })} 
+      readOnly 
+      className="bg-gray-100 font-bold text-lg"
+    />
+  </div> */}
+
+  {/* Paid Amount */}
+  {/* <FormField control={form.control} name="paidAmount" render={({ field }) => ( */}
+   <div className="flex flex-col">
        <div className="flex justify-between items-center col-span-2">
        <span className="text-gray-600">Paid Amount:</span>
       <Input 
@@ -567,6 +540,7 @@ useEffect(() => {
       {/* <FormMessage /> */}
     </div>
     </div>
+  {/* )} /> */}
 
   {/* Balance Due */}
   <div className="flex flex-col">
@@ -593,94 +567,25 @@ useEffect(() => {
 </div>
 </div>
 
-<Button onClick={clearForm} className="mt-4">Clear Form</Button>
-            
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
+            <Button onClick={clearForm} className="mt-4">Clear Form</Button>
+              
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Please wait
                 </>
               ) : (
-                'Generate Bill'
+                'GenerateBill'
               )}
             </Button>
-
-            {/* ✅ PDF Generation and Download */}
-            {/* <div className="mt-8 flex justify-between"> */}
-              {/* <Button onClick={handleGeneratePDF} className="bg-blue-600 text-white">
-                {isGeneratingPDF ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generating PDF...
-                  </>
-                ) : (
-                  "Generate PDF"
-                )}
- 
-         </Button> */}
-{/*          
-         <PDFDownloadLink
-  document={
-    <InvoicePDF
-      invoiceNo={invoiceNo}
-      date={date}
-      username={username || form.getValues("username")}
-      customerID={customerID || "NA"}
-      customerName={state.customername}
-      mobileNo={state.customermobileNo}
-      address={form.getValues("address") || "NA"}
-      items={fields.length > 0
-        ? fields
-        : [{ itemName: "N/A", hsn: "0000", rate: 0, quantity: 0, gstRate: 0 }]}
-      Grandtotal={form.getValues("Grandtotal")}
-      gstTotal={gstTotal}
-      paidAmount={form.getValues("paidAmount")}
-      balanceDue={balanceDue || 0}
-      paymentStatus={paymentStatus || "NA"}
-    />
-  }
->
-  {({ url, loading }) =>
-    loading ? (
-      <button className="bg-gray-400 text-white px-4 py-2 rounded-md" disabled>
-        Generating PDF...
-      </button>
-    ) : (
-      <a
-        href={url ||"#"}
-        download={`invoice_${invoiceNo}.pdf`}
-        className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
-      >
-        Download PDF
-      </a>
-    )
-  }
-</PDFDownloadLink> */}
- <div style={{ padding: "20px" }}>
-      <h1>Generate PDF Invoice</h1>
-
-      <button
-        onClick={generateAndDownloadPDF}
-        style={{
-          padding: "10px 20px",
-          backgroundColor: "green",
-          color: "white",
-          border: "none",
-          borderRadius: "5px",
-          cursor: "pointer",
-        }}
-      >
-        Generate and Download PDF
-      </button>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
     </div>
-
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
-  </div>
-);
+    
+  );
 };
 
 export default InvoiceForm;

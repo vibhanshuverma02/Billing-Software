@@ -3,9 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import AuthProvider from "@/context/Authprovider";
 import { Toaster } from "@/components/ui/sonner";
-
-
-
+import Sidebar from "@/components/ui/sidebar";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -24,8 +22,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
+ modal,
 }: Readonly<{
   children: React.ReactNode;
+  modal:React.ReactNode;
 }>) {
   return (
     <html lang="en">
@@ -34,6 +34,8 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
+      {modal}
+        <div id="modal-root" />
         <Toaster />
       </body>
       </AuthProvider>

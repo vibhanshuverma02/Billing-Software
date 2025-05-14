@@ -114,10 +114,10 @@ const InvoicePDF = ({
     <Document>
     <Page size="A3" style={styles.page}>
     <View style={styles.user}>
-        <Text>{username}</Text>
-        <Text>Address: Main Market Roorkee</Text>
-        <Text>Contact: 9999999999</Text>
-       <Text>GST: XXXXXXXXXXXXX</Text> 
+        <Text>kukreja saree centerL</Text>
+        <Text>Address:  Main market roorkee</Text>
+        <Text>Contact: 8439751861</Text>
+       <Text>GST: SN0987BN87522</Text> 
       </View>
       
       {/* ✅ Header Section */}
@@ -126,7 +126,7 @@ const InvoicePDF = ({
         <Text>Date: {new Date(date).toLocaleString()}</Text>
       </View>
 
-      <Text style={styles.title}>TAX INVOICE</Text>
+      <Text style={styles.title}>INVOICE</Text>
 
       {/* ✅ Bill To Section */}
       <View style={styles.section}>
@@ -177,9 +177,9 @@ const InvoicePDF = ({
 
       {/* ✅ Footer */}
       <View style={styles.footer}>
-        <Text>Thank you for your business!</Text>
-        <Text>For any queries, please contact us at support@company.com</Text>
-        <Text>© 2025 Kukreja Saree Center. All rights reserved.</Text>
+        <Text>Thank you visit again!</Text>
+        <Text>For any queries, please contact us at 8439751861 </Text>
+        <Text>© 2025 kukreja saree center  main market roorkee 247667. All rights reserved.</Text>
       </View>
       
     </Page>
