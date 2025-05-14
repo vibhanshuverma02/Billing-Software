@@ -16,7 +16,7 @@ type Transaction = {
 };
 
 type AttendanceResult = {
-  employeeId: Number;
+  employeeId: number;
   name: string;
   status: string;
  updatedStatus: string,
