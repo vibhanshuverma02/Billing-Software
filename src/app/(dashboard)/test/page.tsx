@@ -392,6 +392,7 @@ useEffect(() => {
     customerID,
     grandTotal,
     // gstTotal,
+   
     paidAmount,
     balanceDue,
     paymentStatus,
@@ -402,6 +403,7 @@ useEffect(() => {
     customerID: string ;
     grandTotal: number;
     // gstTotal:   number;
+   
     paidAmount: number;
     balanceDue: number ;
     paymentStatus:string;
@@ -425,6 +427,7 @@ useEffect(() => {
         items={fields.length > 0 ? fields : [{ itemName: "N/A", hsn: "0000", rate: 0, quantity: 0, gstRate: 0 }]}
         Grandtotal= {grandTotal}
         gstTotal={ gstTotal}
+        previousBalance={previous}
         paidAmount={paidAmount}
         balanceDue={balanceDue}
         paymentStatus={paymentStatus}
@@ -661,12 +664,12 @@ useEffect(() => {
               <div className="text-lg font-bold space-y-4 text-right w-full max-w-md">
                 <p>Sub Total: ₹{fields.reduce((sum, item) => sum + item.rate * item.quantity, 0)}</p>
                 <p>GST: ₹{gstTotal}</p>
-                <p>Total: ₹{form.getValues("Grandtotal")}</p>
+                <p>Total: ₹{form.getValues("Grandtotal").toFixed(2)}</p>
 
                 <div className="border p-3 rounded-lg">
                   <p className="font-semibold">Previous Balance: ₹{previous.toFixed(2)}</p>
                   <p className="font-semibold text-red-600">
-                    GrandTotal: ₹{form.getValues("SuperTotal")}
+                    GrandTotal: ₹{form.getValues("SuperTotal").toFixed(2)}
                   </p>
                 </div>
 

@@ -1,6 +1,6 @@
 "use client";
-import { Page, Text, View, Document, StyleSheet } from '@react-pdf/renderer';
-
+import { Page, Text, View, Document, StyleSheet, Font } from '@react-pdf/renderer';
+import fs from 'fs';
 interface InvoicePDFProps {
   invoiceNo: string;
   date: string;
@@ -18,15 +18,20 @@ interface InvoicePDFProps {
   }[];
   Grandtotal: number;
   gstTotal: number;
+  previousBalance: number;
   paidAmount: number;
   balanceDue: number | null;
   paymentStatus: string | null;
 }
+Font.register({
+  family: 'NotoSans',
+  src: '/font/NotoSans-Regular.ttf',
+});
 
 // ✅ PDF Styles
 const styles = StyleSheet.create({
     page: {
-        fontFamily: 'Times-Roman',
+        fontFamily: 'NotoSans',
         fontSize: 12,
         padding: 30,
       },
@@ -82,10 +87,14 @@ const styles = StyleSheet.create({
         border: '1px solid #000',
         textAlign: 'center',
       },
-      totals: {
-        textAlign: 'right',
-        marginTop: 10,
-      },
+        totals: {
+    textAlign: 'right',
+    marginTop: 10,
+  },
+  totalText: {
+    marginBottom: 15, // Adjust the space between lines here
+  },
+
       footer: {
         textAlign: 'center',
         fontSize: 10,
@@ -107,23 +116,26 @@ const InvoicePDF = ({
   items,
   Grandtotal,
   gstTotal,
+  previousBalance,
   paidAmount,
   balanceDue,
   paymentStatus,
 }: InvoicePDFProps) => (
     <Document>
-    <Page size="A3" style={styles.page}>
-    <View style={styles.user}>
-        <Text>kukreja saree centerL</Text>
-        <Text>Address:  Main market roorkee</Text>
-        <Text>Contact: 8439751861</Text>
-       <Text>GST: SN0987BN87522</Text> 
-      </View>
+   <Page size={{ width: 396, height: 612 }} style={styles.page}>
+    <View style={{ alignItems: 'center', justifyContent: 'center', marginTop: 20 }}>
+  <Text style={{ fontWeight: 'bold', fontSize: 16 }}>kukreja saree center</Text>
+  <Text style={{ fontWeight: 'bold', fontSize: 16 }}>Address: Main market roorkee</Text>
+  <Text style={{ fontWeight: 'bold', fontSize: 16 }}>Contact: 8439751861</Text>
+ 
+</View>
+
       
       {/* ✅ Header Section */}
       <View style={styles.header}>
         <Text>Invoice No: {invoiceNo}</Text>
         <Text>Date: {new Date(date).toLocaleString()}</Text>
+        <Text style={{ fontWeight: 'bold', fontSize: 16 }}>GST: SN0987BN87522</Text>
       </View>
 
       <Text style={styles.title}>INVOICE</Text>
@@ -168,10 +180,12 @@ const InvoicePDF = ({
 
       {/* ✅ Totals */}
       <View style={styles.totals}>
-        <Text>Subtotal: ₹{(Grandtotal - gstTotal).toFixed(2)}</Text>
-        <Text>GST: ₹{gstTotal.toFixed(2)}</Text>
-        <Text>Grand Total: ₹{Grandtotal.toFixed(2)}</Text>
+        <Text style={{ fontWeight: 'bold', fontSize: 16 }}>Subtotal: ₹{(Grandtotal - gstTotal).toFixed(2)}</Text>
+        <Text style={{ fontWeight: 'bold', fontSize: 16 }}>GST: ₹{gstTotal.toFixed(2)}</Text>
+        <Text>PreviousBalance: ₹{previousBalance.toFixed(2)}</Text>
+        <Text style={{ fontWeight: 'bold', fontSize: 16 }}>Grand Total: ₹{Grandtotal.toFixed(2)}</Text>
         <Text>Paid Amount: ₹{paidAmount.toFixed(2)}</Text>
+        <Text>Refund: ₹{Math.max(paidAmount - Grandtotal, 0).toFixed(2)}</Text>
         <Text>Balance Due: ₹{balanceDue}</Text>
       </View>
 
