@@ -4,16 +4,19 @@ import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { CreateEmployeeInput, CreateEmployeeSchema } from "@/schema/employeeschema";
 import { AttendanceStatus } from '@prisma/client';
+import { Attendance as  AttendanceModel , Transaction } from "@prisma/client";
+
+import {
+  getPreviousMonth,
+  calculateDays,
+  calculateSalary,
+  calculateDeductions,
+  updateCarryForward,
+  filterNewTransactions
+} from "@/helpers/employe";
 // import { EvalDevToolModulePlugin } from 'webpack';
 // import { resourceUsage } from 'process';
-type Transaction = {
-  id: number;
-  employeeId: number;
-  amount: number;
-  type: 'SALARY' | 'ADVANCE' | 'DEDUCTION' | 'OTHER';
-  description?: string| null;
-  date: Date;
-};
+
 
 type AttendanceResult = {
   employeeId: number;
@@ -25,14 +28,14 @@ type AttendanceResult = {
 
 };
 export async function GET(req: NextRequest) {
-  // const session = await getServerSession(authOptions);
-  // if (!session || !session.user?.username) {
-  //   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  // }
+  const session = await getServerSession(authOptions);
+  if (!session || !session.user?.username) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   const { searchParams } = new URL(req.url);
-  // const username = session.user.username;
-  const username = 'vibhanshu';
+   const username = session.user.username;
+  // const username = 'vibhanshu';
   const name = searchParams.get("name");
   const month = searchParams.get("month"); // Format: YYYY-MM
  // const employeeId = searchParams.get("id");
@@ -54,101 +57,36 @@ export async function GET(req: NextRequest) {
     }
 
     const start = new Date(`${month}-01T00:00:00.000Z`);
-    const end = new Date(start);
-    end.setMonth(end.getMonth() + 1);
-
-    // Prevent future months
     const today = new Date();
-    const currentYear = today.getFullYear();
-    const currentMonth = today.getMonth();
-    if (start.getFullYear() > currentYear || (start.getFullYear() === currentYear && start.getMonth() > currentMonth)) {
+    if (start > today) {
       return NextResponse.json({ error: "Cannot calculate salary for a future month" }, { status: 400 });
     }
 
     const [attendance, transactions] = await Promise.all([
-      prisma.attendance.findMany({
-        where: {
-          employeeId: employee.id,
-          date: { gte: start, lt: end },
-        },
-      }),
-      prisma.transaction.findMany({
-        where: {
-          employeeId: employee.id,
-          date: { gte: start, lt: end },
-        },
-      }),
+      prisma.attendance.findMany({ where: { employeeId: employee.id, date: { gte: start, lt: new Date(start.getFullYear(), start.getMonth() + 1, 1) } } }),
+      prisma.transaction.findMany({ where: { employeeId: employee.id, date: { gte: start, lt: new Date(start.getFullYear(), start.getMonth() + 1, 1) } } }),
     ]);
-console.log("att",attendance)
-    // Attendance salary calculation
-   // Get total days and Sundays in the month
-const totalDays = new Date(start.getFullYear(), start.getMonth() + 1, 0).getDate();
-const sundays = Array.from({ length: totalDays })
-  .map((_, i) => new Date(start.getFullYear(), start.getMonth(), i + 1))
-  .filter((d) => d.getDay() === 0).length;
+    console.log(transactions)
 
-  const previousMonth = (() => {
-    const [year, monthStr] = month.split("-");
-    let prevMonth = parseInt(monthStr, 10) - 1;
-    let prevYear = parseInt(year, 10);
-    if (prevMonth === 0) {
-      prevMonth = 12;
-      prevYear -= 1;
-    }
-    return `${prevYear}-${prevMonth.toString().padStart(2, "0")}`;
-  })();
-  console.log(previousMonth);
+    const {  workingDays } = calculateDays(month);
 
-  const lastMonthBalance = await prisma.monthlyBalance.findFirst({
-    where: { employeeId :employee.id , month: previousMonth },
-    orderBy: {
-      id: 'desc',
-    },
-  });
-  console.log("Fetched last month balance: ", lastMonthBalance);  const previousCarryForward = lastMonthBalance?.newCarryForward || 0;
-  console.log("previousCarryForward",previousCarryForward)
+    const previousMonth = getPreviousMonth(month);
+    const lastMonthBalance = await prisma.monthlyBalance.findFirst({
+      where: { employeeId: employee.id, month: previousMonth },
+      orderBy: { id: 'desc' },
+    });
+    const previousCarryForward = lastMonthBalance?.newCarryForward || 0;
 
-// Calculate working days (excluding Sundays)
-const workingDays = totalDays - sundays;
+    const { calculatedSalary, presentDays, absents, halfDays } = calculateSalary(attendance, employee.baseSalary, workingDays);
 
-// From attendance records
-const halfDays = attendance.filter((a) => a.status === "HALF_DAY").length;
-const absents = attendance.filter((a) => a.status === "ABSENT").length;
+    const { totalDeductions } = calculateDeductions(transactions, previousCarryForward);
 
-// Present days = all working days - absents - halfDays (0.5 for each half day)
-const presentDays = workingDays - absents - 0.5 * halfDays;
+    const rawNetPayable = calculatedSalary - totalDeductions;
 
-// Daily salary
-const salaryPerDay = employee.baseSalary / workingDays;
-console.log("pr",presentDays , "half" , halfDays , "abse",absents)
-// Final salary before deductions
-const calculatedSalary = Math.round(salaryPerDay * presentDays);
-console.log("salary earned", calculatedSalary);
+    const newCarryForward = await updateCarryForward(employee.id, month, rawNetPayable);
 
-    // Sum of deductions this month
-    const advanceAmount = transactions
-      .filter((t) => t.type === "ADVANCE")
-      .reduce((sum, t) => sum + t.amount, 0);
-
-    const otherDeductions = transactions
-      .filter((t) => t.type === "DEDUCTION" || t.type === "OTHER")
-      .reduce((sum, t) => sum + t.amount, 0);
-
-    const totalDeductions = advanceAmount + otherDeductions + previousCarryForward;
-
-    
-    const rawNetPayable = calculatedSalary - totalDeductions ;
-    console.log("rawNetPayable", rawNetPayable);
-   
-  let newCarryForward = 0;
-  if (rawNetPayable < 0) {
-    newCarryForward = Math.abs(rawNetPayable);
-    console.log(newCarryForward)
-    console.log("newCarryForward",newCarryForward )
-   
-  }
-
-  const currentMonthBalance = await prisma.monthlyBalance.findFirst({
+    const finalSalaryToPay = Math.max(0, rawNetPayable);
+const currentMonthBalance = await prisma.monthlyBalance.findFirst({
     where: {
       employeeId: employee.id,
       month: month, // 🔥 current month, not previous
@@ -166,16 +104,13 @@ console.log("salary earned", calculatedSalary);
       },
     });
   }
-  
-    const finalSalaryToPay = Math.max(0, rawNetPayable);
-
     await prisma.employee.update({
       where: { id: employee.id },
       data: { currentBalance: previousCarryForward },
     });
+
     employee.currentBalance = previousCarryForward;
-    console.log("currentbase",employee.currentBalance);
-    
+
     return NextResponse.json({
       employee,
       attendance,
@@ -186,12 +121,11 @@ console.log("salary earned", calculatedSalary);
       presentDays,
       calculatedSalary,
       totalDeductions,
-      //emiThisMonth,
       finalSalaryToPay,
-      //carryForward,
       loanRemaining: employee.loanRemaining,
-      currentBalance:employee.currentBalance,
+      currentBalance: employee.currentBalance,
     });
+
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
@@ -213,170 +147,57 @@ async function createEmployee(employeeData: CreateEmployeeInput) {
 
   return employee;
 }
-async function calculateMonthlyBalance(
-  employeeId: number,
-  month: string,
-  baseSalary: number,
-  calculatedSalary:number,
-  transactions: Transaction[],
-  
-  manualOverride?: number
-) {
-  const start = new Date(`${month}-01T00:00:00.000Z`);
-  const end = new Date(start);
-  end.setMonth(end.getMonth() + 1);
-  end.setDate(0);
 
-  const previousMonth = (() => {
-    const [year, monthStr] = month.split("-");
-    let prevMonth = parseInt(monthStr, 10) - 1;
-    let prevYear = parseInt(year, 10);
-    if (prevMonth === 0) {
-      prevMonth = 12;
-      prevYear -= 1;
-    }
-    return `${prevYear}-${prevMonth.toString().padStart(2, "0")}`;
-  })();
-
-  const lastMonthBalance = await prisma.monthlyBalance.findFirst({
-    where: { employeeId, month: previousMonth },
-    orderBy: {
-      id: 'desc',
-    },
-  });
-   console.log("lastMonthBalance" , lastMonthBalance);
-  const previousCarryForward = lastMonthBalance?.newCarryForward || 0;
-  console.log("previousCarryForward",previousCarryForward)
-
-  const advanceAmount = transactions
-    .filter((t) => t.type === "ADVANCE")
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const otherDeductions = transactions
-    .filter((t) => t.type === "DEDUCTION" || t.type === "OTHER")
-    .reduce((sum, t) => sum + t.amount, 0);
-    
-
-  const totalDeductions = advanceAmount + otherDeductions;
-   console .log( "!", totalDeductions);
- 
-  // 👇 Attendance already counted separately
- 
-  const rawNetPayable = calculatedSalary - totalDeductions ;
-  console.log("rawNetPayable" , rawNetPayable);
-  let netPayable = manualOverride ?? rawNetPayable;
-
-  let newCarryForward = 0;
-  if (netPayable < 0) {
-    newCarryForward = Math.abs(netPayable);
-    console.log(newCarryForward)
-    console.log("newCarryForward",newCarryForward )
-    netPayable = 0;
-  }
-
-  return {
-    salaryEarned: calculatedSalary,
-    totalDeductions,
-    previousCarryForward,
-    netPayable,
-    newCarryForward,
-  };
-}
 
 async function updateEmployee(
   employeeId: number,
   transactions: Transaction[],
   month: string,
-  manualOverride: number | undefined
+  manualOverride?: number
 ) {
-  const employee = await prisma.employee.findUnique({ where: { id: employeeId } });
-  if (!employee) {
-    return { error: "Employee not found" };
-  }
-
-  if (!month) {
-    return { error: "Month is required" };
-  }
+  if (!month) return { error: "Month is required" };
 
   const start = new Date(`${month}-01T00:00:00.000Z`);
-    const end = new Date(start);
-  end.setMonth(end.getMonth() + 1);
-  end.setDate(0); // Last day of the selected month
+  if (start > new Date()) return { error: "Cannot calculate salary for a future month" };
 
-  const today = new Date();
-  if (start > today) {
-    return { error: "Cannot calculate salary for a future month" };
-  }
+  const employee = await prisma.employee.findUnique({ where: { id: employeeId } });
+  if (!employee) return { error: "Employee not found" };
 
+  const {  workingDays } = calculateDays(month);
 
-  const totalDays = end.getDate();
-  const sundays = Array.from({ length: totalDays })
-  .map((_, i) => new Date(start.getFullYear(), start.getMonth(), i + 1))
-  .filter((d) => d.getDay() === 0).length;
-
-  const existingAttendance = await prisma.attendance.findMany({
-    where: {
-      employeeId: employee.id,
-      date: { gte: start, lt: end },
-    },
+  const attendance = await prisma.attendance.findMany({
+    where: { employeeId, date: { gte: start, lt: new Date(start.getFullYear(), start.getMonth() + 1, 1) } },
   });
 
-  type Attendance = {
-  status: "PRESENT" | "ABSENT" | "HALF_DAY" | string;  // Add other possible statuses if needed
-};
+  const { calculatedSalary, presentDays, absents, halfDays } =
+    calculateSalary(attendance, employee.baseSalary, workingDays);
 
-const absents = existingAttendance.filter((a: Attendance) => a.status === "ABSENT").length;
-console.log("A", absents);
-
-const halfDays = existingAttendance.filter((a: Attendance) => a.status === "HALF_DAY").length;
-console.log("h", halfDays);
-
-const workingDays = totalDays - sundays;
-const presentDays = workingDays - absents - (halfDays * 0.5);
-console.log("P", presentDays);
-
- 
-  
-  const salaryPerDay = employee.baseSalary / workingDays;
-  const calculatedSalary = Math.round(salaryPerDay * presentDays);
-  
-
- console.log( "x",calculatedSalary)
   const existingTxns = await prisma.transaction.findMany({
-    where: {
-      employeeId,
-      date: {
-        gte: start,
-        lt: new Date(start.getFullYear(), start.getMonth() + 1, 1),
-      },
-    },
+    where: { employeeId, date: { gte: start, lt: new Date(start.getFullYear(), start.getMonth() + 1, 1) } },
   });
 
-  const newTransactions = transactions.filter((t: Transaction) =>
-    !existingTxns.some((et) =>
-      et.type === t.type &&
-      et.amount === t.amount &&
-      et.description === t.description &&
-      new Date(et.date).toISOString() === new Date(t.date).toISOString()
-    )
-  );
-
+  const newTransactions = await filterNewTransactions(existingTxns, transactions);
   const allTxns = [...existingTxns, ...newTransactions];
+console.log("new tran",newTransactions)
+  const previousMonth = getPreviousMonth(month);
+  const previousBalance = await prisma.monthlyBalance.findFirst({
+    where: { employeeId, month: previousMonth },
+    orderBy: { id: 'desc' },
+  });
 
-  const {
-    
-    totalDeductions,
-    previousCarryForward,
-    netPayable,
-    newCarryForward,
-  } = await calculateMonthlyBalance(
-    employeeId,
-    month,
-    employee.baseSalary,
-    calculatedSalary,
-    allTxns,
-    manualOverride
-  );
+  const previousCarryForward = previousBalance?.newCarryForward || 0;
+
+  const { totalDeductions, advanceAmount, otherDeductions } = calculateDeductions(allTxns, previousCarryForward);
+
+  const rawNetPayable = calculatedSalary - totalDeductions;
+  const netPayable = manualOverride ?? Math.max(0, rawNetPayable);
+
+  const newCarryForward = await updateCarryForward(employeeId, month, rawNetPayable);
+
+  await prisma.employee.update({
+    where: { id: employeeId },
+    data: { currentBalance: newCarryForward },
+  });
 
   await prisma.monthlyBalance.create({
     data: {
@@ -391,44 +212,39 @@ console.log("P", presentDays);
     },
   });
 
-  await prisma.employee.update({
-    where: { id: employeeId },
-    data: { currentBalance: newCarryForward },
-  });
-  employee.currentBalance= newCarryForward;
-  console.log( "currentbase after transcation:",employee. currentBalance)
-  const createdTransactions = [];
-  for (const t of newTransactions) {
-    const transactionDate = new Date(t.date);
-    if (isNaN(transactionDate.getTime())) continue;
-
-   const newtranscation = await prisma.transaction.create({
-      data: {
-        employeeId,
-        type: t.type,
-        amount: t.amount,
-        description: t.description ?? null,
-        date: transactionDate,
-      },
-    });
-    createdTransactions.push(newtranscation); 
-  }
- 
-  
-
+  const createdTransactions = await Promise.all(
+    newTransactions.map((t:Transaction) =>
+      prisma.transaction.create({
+        data: {
+          employeeId,
+          type: t.type,
+          amount: t.amount,
+          description: t.description ?? null,
+          date: new Date(t.date),
+        },
+      })
+    )
+  );
+console.log("total deduction:",totalDeductions)
   return {
     finalSalary: netPayable,
     updatedBalance: previousCarryForward,
-    totalDeductions: totalDeductions,
+    totalDeductions,
+    advanceAmount,
+    otherDeductions,
     transaction: createdTransactions,
-    attendance: existingAttendance
+    attendance,
+    presentDays,
+    absents,
+    halfDays,
+    workingDays,
+    newCarryForward,
   };
 }
-function formatDate(date: Date): string {
-  return date.toISOString().split("T")[0];
-}
 
- async function update_attendance(
+
+
+async function update_attendance(
   employeeId: number,
   month: string,
   attendance: { date: string; status: "PRESENT" | "ABSENT" | "HALF_DAY" }[]
@@ -438,96 +254,76 @@ function formatDate(date: Date): string {
   if (!employee) return { error: "Employee not found" };
 
   if (!month) return { error: "Month is required" };
-
-  const start = new Date(`${month}-01T00:00:00.000Z`);
-  const end = new Date(start);
-  end.setMonth(end.getMonth() + 1);
-  end.setDate(0); // last day of month
+  console.log(month)
+const start = new Date(`${month}-01T00:00:00.000Z`);
+const end = new Date(start);
+end.setMonth(end.getMonth() + 1);
+end.setDate(0);
+end.setHours(23, 59, 59, 999); // Ensure end includes the whole day
 
   if (start > new Date()) {
     return { error: "Cannot calculate salary for a future month" };
   }
 
-  const totalDays = end.getDate();
-  const sundays = Array.from({ length: totalDays })
-    .map((_, i) => new Date(start.getFullYear(), start.getMonth(), i + 1))
-    .filter((d) => d.getDay() === 0).length;
+  const {  workingDays } = calculateDays(month);
 
-    const previousMonth = (() => {
-      const [year, monthStr] = month.split("-");
-      let prevMonth = parseInt(monthStr, 10) - 1;
-      let prevYear = parseInt(year, 10);
-      if (prevMonth === 0) {
-        prevMonth = 12;
-        prevYear -= 1;
-      }
-      return `${prevYear}-${prevMonth.toString().padStart(2, "0")}`;
-    })();
-    console.log(previousMonth);
-  
-    const lastMonthBalance = await prisma.monthlyBalance.findFirst({
-      where: { employeeId :employee.id , month: previousMonth },
-      orderBy: {
-        id: 'desc',
-      },
-    });
-    console.log("Fetched last month balance: ", lastMonthBalance);  const previousCarryForward = lastMonthBalance?.newCarryForward || 0;
-    console.log("previousCarryForward",previousCarryForward)
-  
-  // Fetch existing attendance for the month
-  const [existingAttendance, transactions] = await Promise.all([
-    prisma.attendance.findMany({
-      where: {
-        employeeId: employee.id,
-        date: { gte: start, lt: end },
-      },
-    }),
-    prisma.transaction.findMany({
-      where: {
-        employeeId: employee.id,
-        date: { gte: start, lt: end },
-      },
-    }),
-  ]);
+  const previousMonth = getPreviousMonth(month);
 
-
-  // Merge existing and new attendance (new overwrites existing)
-  const attendanceMap = new Map<string, { status: string }>();
-  for (const a of existingAttendance) {
-    attendanceMap.set(formatDate(a.date), { status: a.status  as AttendanceStatus,
-     });
-  }
-  for (const a of attendance) {
-    attendanceMap.set(formatDate(new Date(a.date)), { status: a.status  as AttendanceStatus,
-    });
-  }
-
-  // Upsert all attendance entries in parallel
-  const upserts = Array.from(attendanceMap.entries()).map(([dateStr, { status }]) => {
-    const date = new Date(dateStr);
-    return prisma.attendance.upsert({
-      where: {
-        employeeId_date: { employeeId, date },
-      },
-      update: { status: status as AttendanceStatus },
-      create: {
-        employeeId,
-        date,
-        status: status as AttendanceStatus,
-      },
-    });
+  const lastMonthBalance = await prisma.monthlyBalance.findFirst({
+    where: { employeeId, month: previousMonth },
+    orderBy: { id: 'desc' },
   });
 
+  const previousCarryForward = lastMonthBalance?.newCarryForward || 0;
+
+  // Fetch existing attendance & transactions
+  const existingAttendance= await 
+    prisma.attendance.findMany({
+      where: { employeeId, date: { gte: start, lte: end } },
+    })
+
+
+ const transactions =  await prisma.transaction.findMany({ where: { employeeId: employee.id, date: { gte: start, lt: new Date(start.getFullYear(), start.getMonth() + 1, 1) } } })
+  console.log("transactions" ,transactions)
+
+  // Merge attendance
+  const attendanceMap = new Map<string, { status: string }>();
+  for (const a of existingAttendance) {
+    attendanceMap.set(a.date.toISOString().split("T")[0], { status: a.status });
+  }
+  for (const a of attendance) {
+    attendanceMap.set(new Date(a.date).toISOString().split("T")[0], { status: a.status });
+  }
+
+  // Upsert attendance
+  const upserts = Array.from(attendanceMap.entries()).map(([dateStr, { status }]) =>
+    prisma.attendance.upsert({
+      where: { employeeId_date: { employeeId, date: new Date(dateStr) } },
+      update: { status : status as AttendanceStatus },
+      create: { employeeId, date: new Date(dateStr), status : status as AttendanceStatus  },
+    })
+  );
   await Promise.all(upserts);
 
-  // Salary calculation
-  const allAttendance = Array.from(attendanceMap.values());
-  const workingDays = totalDays - sundays;
-  const absents = allAttendance.filter((a) => a.status === "ABSENT").length;
-  const halfDays = allAttendance.filter((a) => a.status === "HALF_DAY").length;
-  const presentDays = workingDays - absents - halfDays * 0.5;
-  const salaryPerDay = employee.baseSalary / workingDays;
-  const calculatedSalary = Math.round(salaryPerDay * presentDays);
+  // Calculate Salary
+  const attendanceList: AttendanceModel[] = Array.from(attendanceMap.entries()).map(([dateStr, { status }]) => ({
+  id: 0, // Dummy ID, since calculation doesn't use it
+  employeeId,
+  date: new Date(dateStr),
+  status: status as AttendanceStatus,
+}));
+// console.log(attendanceList);
+  const { calculatedSalary, presentDays, absents, halfDays } = calculateSalary(attendanceList, employee.baseSalary, workingDays);
+
+  // Calculate Deductions
+  const { totalDeductions, advanceAmount, otherDeductions } = calculateDeductions(transactions, previousCarryForward);
+
+  const rawNetPayable = calculatedSalary - totalDeductions;
+console.log(rawNetPayable)
+  // ✅ Update Monthly Balance using helper
+  const newCarryForward = await updateCarryForward(employeeId, month, rawNetPayable);
+
+  const finalSalaryToPay = Math.max(0, rawNetPayable);
 
   const finalAttendance = Array.from(attendanceMap.entries()).map(([date, { status }]) => ({
     date,
@@ -535,147 +331,80 @@ function formatDate(date: Date): string {
   }));
 
   const fullAttendance = await prisma.attendance.findMany({
-    where: {
-      employeeId: employee.id
-    }
+    where: { employeeId },
   });
-  console.log( "fullAttendance"   , fullAttendance)
-   // Sum of deductions this month
-   const advanceAmount = transactions
-   .filter((t) => t.type === "ADVANCE")
-   .reduce((sum, t) => sum + t.amount, 0);
+console.log("final",calculatedSalary);
+console.log("---",totalDeductions);
+console.log("finalsalarytopay",finalSalaryToPay);
+console.log("A", absents,"b", presentDays,"h" ,halfDays,)
 
- const otherDeductions = transactions
-   .filter((t) => t.type === "DEDUCTION" || t.type === "OTHER")
-   .reduce((sum, t) => sum + t.amount, 0);
-
- const totalDeductions = advanceAmount + otherDeductions + previousCarryForward;
-
-
- const rawNetPayable = calculatedSalary - totalDeductions ;
- 
- let newCarryForward = 0;
-  if (rawNetPayable < 0) {
-    newCarryForward = Math.abs(rawNetPayable);
-    console.log(newCarryForward)
-    console.log("newCarryForward",newCarryForward )
-   
-  }
-
-  const currentMonthBalance = await prisma.monthlyBalance.findFirst({
-    where: {
-      employeeId: employee.id,
-      month: month, // 🔥 current month, not previous
-    },
-    orderBy: {
-      id: 'desc',
-    },
-  });
-  
-  if (currentMonthBalance) {
-    await prisma.monthlyBalance.update({
-      where: { id: currentMonthBalance.id },
-      data: {
-        newCarryForward: newCarryForward, // ✅ this month's carry forward
-      },
-    });
-  }
-  
- 
- const finalSalaryToPay = Math.max(0, rawNetPayable);
- await prisma.employee.update({
-   where: { id: employee.id },
-   data: { currentBalance: previousCarryForward },
- });
- employee.currentBalance = previousCarryForward;
- 
   return {
     finalsalary: calculatedSalary,
-    finalSalaryToPay:finalSalaryToPay,
+    finalSalaryToPay,
     attendance: finalAttendance,
-    fullAttendance: fullAttendance,
-    absents: absents,
-    halfDays:halfDays,
-    presentDays: presentDays
+    fullAttendance,
+    absents,
+    halfDays,
+    workingDays,
+    presentDays,
+    newCarryForward,
+    advanceAmount,
+    otherDeductions,
+    totalDeductions,
   };
 }
-async function deleteTransaction(
-  employeeId: number,
-  transactionId: number
-) {
+async function deleteTransaction(employeeId: number, transactionId: number) {
   const employee = await prisma.employee.findUnique({ where: { id: employeeId } });
-  if (!employee) {
-    return { error: "Employee not found" };
-  }
+  if (!employee) return { error: "Employee not found" };
 
-  const existingTransaction = await prisma.transaction.findUnique({
-    where: { id: transactionId },
-  });
-
+  const existingTransaction = await prisma.transaction.findUnique({ where: { id: transactionId } });
   if (!existingTransaction || existingTransaction.employeeId !== employeeId) {
     return { error: "Transaction not found" };
   }
 
   const transactionDate = new Date(existingTransaction.date);
-
-  // Delete the transaction
-  await prisma.transaction.delete({
-    where: { id: transactionId },
-  });
-
-  // Determine the month from the transaction date
   const month = `${transactionDate.getFullYear()}-${String(transactionDate.getMonth() + 1).padStart(2, '0')}`;
 
-  const start = new Date(`${month}-01T00:00:00.000Z`);
-  const end = new Date(start);
-  end.setMonth(end.getMonth() + 1);
-  end.setDate(0);
+  // Delete the transaction
+  await prisma.transaction.delete({ where: { id: transactionId } });
 
-  const totalDays = end.getDate();
-  const sundays = Array.from({ length: totalDays })
-    .map((_, i) => new Date(start.getFullYear(), start.getMonth(), i + 1))
-    .filter((d) => d.getDay() === 0).length;
-
+  // Get attendance for the month
   const existingAttendance = await prisma.attendance.findMany({
-    where: {
-      employeeId,
-      date: { gte: start, lt: end },
-    },
+    where: { employeeId, date: { gte: new Date(`${month}-01`), lt: new Date(transactionDate.getFullYear(), transactionDate.getMonth() + 1, 1) } },
   });
 
-  const absents = existingAttendance.filter((a) => a.status === "ABSENT").length;
-  const halfDays = existingAttendance.filter((a) => a.status === "HALF_DAY").length;
+  // Calculate days
+  const { workingDays } = calculateDays(month);
 
-  const workingDays = totalDays - sundays;
-  const presentDays = workingDays - absents - (halfDays * 0.5);
+  // Calculate salary
+  const { calculatedSalary } = calculateSalary(existingAttendance , employee.baseSalary, workingDays);
 
-  const salaryPerDay = employee.baseSalary / workingDays;
-  const calculatedSalary = Math.round(salaryPerDay * presentDays);
-
-  // Get remaining transactions after deletion
+  // Get remaining transactions for this month
   const remainingTransactions = await prisma.transaction.findMany({
-    where: {
-      employeeId,
-      date: { gte: start, lt: new Date(start.getFullYear(), start.getMonth() + 1, 1) },
-    },
+    where: { employeeId, date: { gte: new Date(`${month}-01`), lt: new Date(transactionDate.getFullYear(), transactionDate.getMonth() + 1, 1) } },
   });
 
-  const {
-   
-    totalDeductions,
-    previousCarryForward,
-    netPayable,
-    newCarryForward,
-  } = await calculateMonthlyBalance(
-    employeeId,
-    month,
-    employee.baseSalary,
-    calculatedSalary,
-    remainingTransactions,
-    undefined // No manual override for deletion
-  );
+  // Get previous carry forward (last month's balance)
+  const lastMonth = new Date(transactionDate.getFullYear(), transactionDate.getMonth() - 1, 1);
+  const lastMonthKey = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, '0')}`;
 
-  // Update Monthly Balance (optional)
+  const lastMonthBalance = await prisma.monthlyBalance.findFirst({
+    where: { employeeId, month: lastMonthKey },
+    orderBy: { id: 'desc' },
+  });
+
+  const previousCarryForward = lastMonthBalance?.newCarryForward || 0;
+
+  // Calculate deductions
+  const { totalDeductions } = calculateDeductions(remainingTransactions as Transaction[], previousCarryForward);
+
+  // Net Payable = salary - deductions
+  const netPayable = calculatedSalary - totalDeductions;
+
+  // Update carry forward for current month
+  const newCarryForward = await updateCarryForward(employeeId, month, netPayable);
+
+  // Update monthly balance (create new record)
   await prisma.monthlyBalance.create({
     data: {
       employeeId,
@@ -694,7 +423,6 @@ async function deleteTransaction(
     where: { id: employeeId },
     data: { currentBalance: newCarryForward },
   });
-
   return {
     updatedBalance: previousCarryForward,
     updatedSalary: netPayable,
@@ -716,7 +444,7 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
 
-    // For now using a hardcoded username, ideally from session
+    //For now using a hardcoded username, ideally from session
     const username = session.user.username;
 
 // const username = "vibhanshu"
@@ -837,6 +565,7 @@ export async function POST(req: NextRequest) {
         },
         { status: 200 }
       );
+      
     }
  if (action === "delete_transaction") {
   if (!employeeId || !transactionId) {
@@ -877,7 +606,12 @@ export async function POST(req: NextRequest) {
             finalSalary:  result.finalsalary ,
             attendance : result.attendance,
             finalSalaryToPay: result.finalSalaryToPay ,
-            fullattendance: result.fullAttendance
+            fullattendance: result.fullAttendance,
+            workingDays: result.workingDays,
+            presentDays:result.presentDays,
+            absents:result.absents,
+            halfDays:result.halfDays
+
         
       
         },

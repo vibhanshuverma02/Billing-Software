@@ -154,7 +154,7 @@ export default function EmployeeCard({
   const [localcalculatedsalary, setLocalcalculatedsalary] = useState<number>(calculatedSalary);
   const [didChangeLocally, setDidChangeLocally] = useState(false);
   const [allAttendance, setAllAttendance] = useState<Attendance[]>(attendance);
-
+ 
   const handlePrevMonth = () => {
     setDidChangeLocally(false); // 👈 reset so new month attendance can apply
  
@@ -253,39 +253,37 @@ const filteredTransactions = useMemo(() => {
 // /    setLocalAttendance(attendance);
     console.log("masterhu main", attendance ,"month" , month);
   }, [transactions, employee.currentBalance, finalSalaryToPay, totaldeductions]);
+async function updateAttendance() {
+  console.log("Updating attendance...");  // Check if this log appears
+  try {
+    const payload = {
+      action: 'update_attendence',
+      employeeId: employee.id,
+      month: format(month, 'yyyy-MM'),
+      attendance: localAttendance,
+    };
+console.log("payload",payload);
+    const response = await axios.post('/api/employee', payload, {
+      headers: { 'Content-Type': 'application/json' },
+    });
+    console.log("Attendance update successful, response:", response.data);  // Log the response
 
-  async function updateAttendance() {
-    try {
-      const payload = {
-        action: 'update_attendence',
-        employeeId: employee.id,
-        month: format(month, 'yyyy-MM'),
-        attendance: localAttendance,
-      };
-  
-      const response = await axios.post('/api/employee', payload, {
-        headers: { 'Content-Type': 'application/json' },
-      });
-  
-      setAllAttendance(response.data.attendance); // ✅ Save all months
-      setDidChangeLocally(false);
-      setLocalcalculatedsalary(response.data.finalSalary);
-      setLocalsalary(response.data.finalSalaryToPay);
-    //  console.log( "allAttendance" , allAttendance);
-      alert("✅ Attendance updated successfully!");
-    } catch (error) {
-      console.error("❌ Failed to update attendance:", error);
-      alert("Failed to update attendance");
-    }
+    setAllAttendance(response.data.attendance); 
+    setDidChangeLocally(false);
+    setLocalcalculatedsalary(response.data.finalSalary);
+    setLocalsalary(response.data.finalSalaryToPay);
+
+    alert("✅ Attendance updated successfully!");  // Ensure this alert gets triggered
+  } catch (error) {
+    console.error("❌ Failed to update attendance:", error);
+    alert("Failed to update attendance");
   }
-  
+}
+
 
  
   useEffect(() => {
     if (didChangeLocally) return;
-  
-   
-  
  
     setLocalAttendance(allAttendance); // ✅ Clear overwrite
   }, [month, allAttendance]);
@@ -295,13 +293,6 @@ const filteredTransactions = useMemo(() => {
     setAllAttendance(attendance);
   }, [attendance]);
   
-  useEffect(() => {
-    console.log("✅ allAttendance updated:", allAttendance);
-  }, [allAttendance]);
-  
-  useEffect(() => {
-    console.log("✅ modifiers map:", modifiers);
-  }, [modifiers]);
 async function handleDeleteTransaction(txId: string) {
   console.log("inisde delete")
   if (!txId) {
@@ -328,6 +319,7 @@ console.log(888)
       const { updatedBalance, updatedSalary, totalDeduction } = res.data;
 
       // Update local state after deletion
+      
       setLocalTransactions((prev) => prev.filter((tx) => tx.id !== txId));
       setLocalBalance(updatedBalance);
       setLocalsalary(updatedSalary);
@@ -344,6 +336,7 @@ console.log(888)
     const errorMessage = axiosError.response?.data?.error || "Failed to delete transaction";
     alert(errorMessage);
   }
+  
 }
 
 return (
@@ -488,7 +481,7 @@ return (
 
       <button
         onClick={updateAttendance}
-        className="bg-green-600 text-white px-4 py-1 rounded hover:bg-green-700 mt-2"
+        className="bg-green-600 text-white px-4 py-1 rounded hover:bg-white-700 mt-2"
       >
         ✅ Save Attendance
       </button>

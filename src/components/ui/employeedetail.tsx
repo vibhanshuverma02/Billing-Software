@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import EmployeeCard from '@/components/ui/employeecard';
+import EmployeeCard from '@/components/ui/try';
 import { format } from 'date-fns';
 
 // ✅ Type Definitions
@@ -116,7 +116,7 @@ export default function EmployeeSearchPage() {
           employee={data.employee}
           month={selectedMonthDate}
           onMonthChange={handleMonthChange}
-          onRefresh={fetchData}
+          // onRefresh={fetchData}
           attendance={data.attendance}
           calculatedSalary={data.calculatedSalary}
           workingdays={data.workingdays}
@@ -125,11 +125,11 @@ export default function EmployeeSearchPage() {
           presents={data.present}
           totaldeductions={data.totaldeductions}
           finalSalaryToPay={data.finalSalaryToPay}
-          carryForward={data.carryForward}
+          // carryForward={data.carryForward}
           loanRemaining={data.loanRemaining}
-          currentBalance={data.currentBalance}
+          // currentBalance={data.currentBalance}
           transactions={data.transactions}
-          loading={loading}
+           loading={loading}
         />
       )}
     </div>
