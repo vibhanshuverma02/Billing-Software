@@ -106,6 +106,7 @@ const handleSaveAttendance = async () => {
 
     alert('✅ Attendance updated successfully!');
   } catch (err) {
+    console.error(err);
     alert('❌ Failed to update attendance');
   } finally {
     setLoadingAction(null);
