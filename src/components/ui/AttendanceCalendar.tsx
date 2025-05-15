@@ -19,7 +19,7 @@ interface AttendanceCalendarProps {
 function getFirstFourWednesdays(month: Date): string[] {
   const firstDay = new Date(month.getFullYear(), month.getMonth(), 1);
   const wednesdays: string[] = [];
-  let day = new Date(firstDay);
+  const day = new Date(firstDay);
 
   while (wednesdays.length < 4 && day.getMonth() === month.getMonth()) {
     if (day.getDay() === 3) { // 3 = Wednesday
