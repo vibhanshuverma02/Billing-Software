@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import EmployeeCard from '@/components/ui/try';
 import { format } from 'date-fns';
-
+import { Transaction } from '@prisma/client';
 // ✅ Type Definitions
 interface Employee {
   id: number;
@@ -53,7 +53,7 @@ export default function EmployeeSearchPage() {
   const [totalTransactions, setTotalTransactions] = useState(0);
 
   // We keep transactions separately for append
-  const [transactions, setTransactions] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
 
   const fetchData = async (append = false) => {
     if (!searchUser) return;
