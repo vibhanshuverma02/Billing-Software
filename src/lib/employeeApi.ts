@@ -40,24 +40,40 @@ export async function addTransaction(
     transactions: [tx],
   });
 
+  const rawTx = res.data.employee.transaction[0];
+
+  if (!rawTx?.id) {
+    console.warn('⚠️ New transaction missing ID:', rawTx);
+  }
+
   return {
-    transaction: res.data.employee.transaction[0],
+    transaction: {
+      ...rawTx,
+      id: Number(rawTx.id),
+      date: new Date(rawTx.date),
+    },
     balance: res.data.employee.updatedBalance,
     salary: res.data.employee.finalSalary,
     deductions: res.data.employee.totalDeduction,
   };
 }
 
+
 export async function deleteTransaction(employeeId: number, transactionId: number) {
+  console.log('Deleting transaction', { employeeId, transactionId });
   const res = await axios.post(API_URL, {
     action: 'delete_transaction',
     employeeId,
     transactionId,
   });
 
+  const data = res.data;
+
   return {
-    balance: res.data.updatedBalance,
-    salary: res.data.updatedSalary,
-    deductions: res.data.totalDeduction,
+    updatedBalance: data.updatedBalance,
+    updatedSalary: data.updatedSalary,
+    totalDeduction: data.totalDeduction,
   };
 }
+
+

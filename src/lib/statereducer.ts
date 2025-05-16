@@ -144,23 +144,41 @@ export function employeeReducer(state: State, action: Action): State {
       };
     }
 
-    case 'ADD_TRANSACTION':
-      return {
-        ...state,
-        transactions: [...state.transactions, action.payload.transaction],
-        balance: action.payload.balance,
-        salary: action.payload.salary,
-        deductions: action.payload.deductions,
-      };
+    case 'ADD_TRANSACTION': {
+  const newTx = {
+    ...action.payload.transaction,
+    date: new Date(action.payload.transaction.date), // 🔧 always convert
+  };
 
-    case 'DELETE_TRANSACTION':
-      return {
-        ...state,
-        transactions: state.transactions.filter((tx) => tx.id !== action.payload.id),
-        balance: action.payload.balance,
-        salary: action.payload.salary,
-        deductions: action.payload.deductions,
-      };
+  const exists = state.transactions.some((tx) => tx.id === newTx.id);
+  const updated = exists
+    ? state.transactions.map((tx) => (tx.id === newTx.id ? newTx : tx))
+    : [...state.transactions, newTx];
+
+  return {
+    ...state,
+    transactions: updated,
+    balance: action.payload.balance,
+    salary: action.payload.salary,
+    deductions: action.payload.deductions,
+  };
+}
+
+
+    case 'DELETE_TRANSACTION': {
+  const exists = state.transactions.some(tx => tx.id === action.payload.id);
+  if (!exists) {
+    console.warn('Tried to delete a transaction that does not exist in state:', action.payload.id);
+  }
+
+  return {
+    ...state,
+    transactions: state.transactions.filter((tx) => tx.id !== action.payload.id),
+    balance: action.payload.balance,
+    salary: action.payload.salary,
+    deductions: action.payload.deductions,
+  };
+}
 
     default:
       return state;

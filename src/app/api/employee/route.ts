@@ -267,7 +267,9 @@ async function updateEmployee(
     newCarryForward,
   };
 
-  const transactionOperations = newTransactions.map((t) =>
+  // Create new transactions one by one (or in parallel with Promise.all)
+const createdTransactions = await Promise.all(
+  newTransactions.map((t) =>
     prisma.transaction.create({
       data: {
         employeeId,
@@ -277,52 +279,46 @@ async function updateEmployee(
         date: new Date(t.date),
       },
     })
-  );
+  )
+);
 
-  const updateOperations = [
-    prisma.employee.update({
-      where: { id: employeeId },
-      data: { currentBalance: newCarryForward },
-    }),
-    ...(existingMonthly
-      ? [
-          prisma.monthlyBalance.update({
-            where: {
-              employeeId_month: {
-                employeeId,
-                month,
-              },
-            },
-            data: monthlyBalanceData,
-          }),
-        ]
-      : [
-          prisma.monthlyBalance.create({
-            data: monthlyBalanceData,
-          }),
-        ]),
-    ...transactionOperations,
-  ];
+// Now update other things in a single transaction *excluding* transaction creates because they’re done already
+await prisma.$transaction([
+  prisma.employee.update({
+    where: { id: employeeId },
+    data: { currentBalance: newCarryForward },
+  }),
+  ...(existingMonthly
+    ? [
+        prisma.monthlyBalance.update({
+          where: {
+            employeeId_month: { employeeId, month },
+          },
+          data: monthlyBalanceData,
+        }),
+      ]
+    : [
+        prisma.monthlyBalance.create({
+          data: monthlyBalanceData,
+        }),
+      ]),
+]);
 
-  await prisma.$transaction(updateOperations);
-
-  return {
-    finalSalary: netPayable,
-    updatedBalance: previousCarryForward,
-    totalDeductions,
-    advanceAmount,
-    otherDeductions,
-    transaction: newTransactions,
-    attendance,
-    presentDays,
-    absents,
-    halfDays,
-    workingDays,
-    newCarryForward,
-  };
+return {
+  finalSalary: netPayable,
+  updatedBalance: previousCarryForward,
+  totalDeductions,
+  advanceAmount,
+  otherDeductions,
+  transaction: createdTransactions, // <== Return DB created transactions with IDs!
+  attendance,
+  presentDays,
+  absents,
+  halfDays,
+  workingDays,
+  newCarryForward,
+};
 }
-
-
 
 async function update_attendance(
   employeeId: number,
@@ -626,6 +622,7 @@ export async function POST(req: NextRequest) {
       if ('error' in result) {
         return NextResponse.json({ error: result.error }, { status: 404 });
       }
+console.log('Result transaction:', result.transaction);
 
       return NextResponse.json({
         message: 'Employee updated successfully',

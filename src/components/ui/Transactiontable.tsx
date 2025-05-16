@@ -1,6 +1,6 @@
 'use client';
 
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import type { Transaction } from '@prisma/client';
 
 interface Props {
@@ -25,21 +25,27 @@ export default function TransactionTable({ transactions, onDelete }: Props) {
             </tr>
           </thead>
           <tbody>
-            {transactions.map((tx) => (
-              <tr key={`${tx.id}-${tx.date}`}>
-                <td className="p-2">{format(parseISO(tx.date.toString()), 'dd/MM/yyyy')}</td>
-                <td className="p-2">{tx.type}</td>
-                <td className="p-2">₹{tx.amount}</td>
-                <td className="p-2">
-                  <button
-                    onClick={() => onDelete(tx.id)}
-                    className="text-red-500 hover:underline"
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {transactions.map((tx) => {
+              const rawDate = typeof tx.date === 'string' ? new Date(tx.date) : tx.date;
+              const isValid = !isNaN(rawDate.getTime());
+              const displayDate = isValid ? format(rawDate, 'dd/MM/yyyy') : 'Invalid Date';
+
+              return (
+                <tr key={`${tx.id}-${tx.date}`}>
+                  <td className="p-2">{displayDate}</td>
+                  <td className="p-2">{tx.type}</td>
+                  <td className="p-2">₹{tx.amount}</td>
+                  <td className="p-2">
+                    <button
+                      onClick={() => onDelete(tx.id)}
+                      className="text-red-500 hover:underline"
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       )}

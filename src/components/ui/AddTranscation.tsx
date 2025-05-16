@@ -3,7 +3,7 @@ import { useState } from 'react';
 import axios from 'axios';
 import { format } from 'date-fns';
 import type { Transaction, TransactionType } from '@prisma/client';
-
+import { toast } from 'sonner';
 interface Props {
   employeeId: number;
   selectedMonthDate: Date;
@@ -53,13 +53,13 @@ export default function AddTransaction({ employeeId, selectedMonthDate, onAdd }:
 
       onAdd({ transaction, balance, salary, deductions });
 
-      alert('Transaction added successfully');
+      toast.success('Transaction added successfully');
       setAmount('');
       setDescription('');
       setUserDate('');
     } catch (err) {
       console.error(err);
-      alert('Failed to add transaction');
+      toast.error('Failed to add transaction');
     }
     finally {
     setLoading(false);
