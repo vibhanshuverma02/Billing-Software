@@ -28,28 +28,40 @@ type AttendanceResult = {
 
 };
 export async function GET(req: NextRequest) {
+  console.time('🔄 API /api/employee total');
+
   const session = await getServerSession(authOptions);
-  if (!session || !session.user?.username) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session?.user?.username) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const { searchParams } = new URL(req.url);
-   const username = session.user.username;
-  // const username = 'vibhanshu';
-  const name = searchParams.get("name");
-  const month = searchParams.get("month"); // Format: YYYY-MM
- // const employeeId = searchParams.get("id");
+  const username = session.user.username;
+  const name = searchParams.get('name');
+  const month = searchParams.get('month');
+  const page = parseInt(searchParams.get('page') || '1', 10);
+  const pageSize = parseInt(searchParams.get('pageSize') || '50', 10);
+  const skip = (page - 1) * pageSize;
+
   if (!name) {
-    return NextResponse.json({ error: "Missing employee name" }, { status: 400 });
+    return NextResponse.json({ error: 'Missing employee name' }, { status: 400 });
   }
 
   try {
-    const employee = await prisma.employee.findFirst({
-      where: { username, name },
-    });
+    console.time('👤 Fetch employee');
+const employee = await prisma.employee.findFirst({
+  where: {
+    username,
+    name: {
+      equals: name,
+      mode: 'insensitive',  // <-- makes this case-insensitive
+    },
+  },
+});
+    console.timeEnd('👤 Fetch employee');
 
     if (!employee) {
-      return NextResponse.json({ error: "Employee not found" }, { status: 404 });
+      return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
     }
 
     if (!month) {
@@ -57,64 +69,101 @@ export async function GET(req: NextRequest) {
     }
 
     const start = new Date(`${month}-01T00:00:00.000Z`);
+    const end = new Date(start.getFullYear(), start.getMonth() + 1, 1);
     const today = new Date();
+
     if (start > today) {
-      return NextResponse.json({ error: "Cannot calculate salary for a future month" }, { status: 400 });
+      return NextResponse.json({ error: 'Cannot calculate salary for a future month' }, { status: 400 });
     }
 
-    const [attendance, transactions] = await Promise.all([
-      prisma.attendance.findMany({ where: { employeeId: employee.id, date: { gte: start, lt: new Date(start.getFullYear(), start.getMonth() + 1, 1) } } }),
-      prisma.transaction.findMany({ where: { employeeId: employee.id, date: { gte: start, lt: new Date(start.getFullYear(), start.getMonth() + 1, 1) } } }),
-    ]);
-    console.log(transactions)
-
-    const {  workingDays } = calculateDays(month);
-
     const previousMonth = getPreviousMonth(month);
-    const lastMonthBalance = await prisma.monthlyBalance.findFirst({
-      where: { employeeId: employee.id, month: previousMonth },
-      orderBy: { id: 'desc' },
-    });
+    const { workingDays } = calculateDays(month);
+
+    console.time('📦 Parallel DB calls');
+    const [attendance, transactions, totalTransactions, lastMonthBalance, currentMonthBalance] =
+      await Promise.all([
+        prisma.attendance.findMany({
+          where: { employeeId: employee.id, date: { gte: start, lt: end } },
+        }),
+        prisma.transaction.findMany({
+          where: { employeeId: employee.id, date: { gte: start, lt: end } },
+          orderBy: { date: 'desc' },
+          take: pageSize,
+          skip,
+        }),
+        prisma.transaction.count({
+          where: { employeeId: employee.id, date: { gte: start, lt: end } },
+        }),
+        prisma.monthlyBalance.findFirst({
+          where: { employeeId: employee.id, month: previousMonth },
+          orderBy: { id: 'desc' },
+        }),
+        prisma.monthlyBalance.findFirst({
+          where: { employeeId: employee.id, month },
+          orderBy: { id: 'desc' },
+        }),
+      ]);
+    console.timeEnd('📦 Parallel DB calls');
+
     const previousCarryForward = lastMonthBalance?.newCarryForward || 0;
 
-    const { calculatedSalary, presentDays, absents, halfDays } = calculateSalary(attendance, employee.baseSalary, workingDays);
+    console.time('🧮 Calculate salary');
+    const { calculatedSalary, presentDays, absents, halfDays } = calculateSalary(
+      attendance,
+      employee.baseSalary,
+      workingDays
+    );
 
     const { totalDeductions } = calculateDeductions(transactions, previousCarryForward);
-
     const rawNetPayable = calculatedSalary - totalDeductions;
+    const finalSalaryToPay = Math.max(0, rawNetPayable);
+    console.timeEnd('🧮 Calculate salary');
 
+    // Carry forward calculation
     const newCarryForward = await updateCarryForward(employee.id, month, rawNetPayable);
 
-    const finalSalaryToPay = Math.max(0, rawNetPayable);
-const currentMonthBalance = await prisma.monthlyBalance.findFirst({
-    where: {
+    console.time('💾 Update DB if needed');
+
+    if (!currentMonthBalance) {
+  await prisma.monthlyBalance.create({
+    data: {
       employeeId: employee.id,
-      month: month, // 🔥 current month, not previous
-    },
-    orderBy: {
-      id: 'desc',
+      month,
+      newCarryForward,
+      carryForward: previousCarryForward, // or 0 if unknown
+      salaryEarned: calculatedSalary,
+      totalDeductions: totalDeductions,
+      netPayable: finalSalaryToPay,
+      amountPaid: 0, // set as per your logic
     },
   });
-  
-  if (currentMonthBalance) {
-    await prisma.monthlyBalance.update({
-      where: { id: currentMonthBalance.id },
-      data: {
-        newCarryForward: newCarryForward, // ✅ this month's carry forward
-      },
-    });
-  }
-    await prisma.employee.update({
-      where: { id: employee.id },
-      data: { currentBalance: previousCarryForward },
-    });
+} else if (currentMonthBalance.newCarryForward !== newCarryForward) {
+  await prisma.monthlyBalance.update({
+    where: { id: currentMonthBalance.id },
+    data: { newCarryForward },
+  });
+}
 
-    employee.currentBalance = previousCarryForward;
+
+    if (employee.currentBalance !== previousCarryForward) {
+      await prisma.employee.update({
+        where: { id: employee.id },
+        data: { currentBalance: previousCarryForward },
+      });
+      employee.currentBalance = previousCarryForward; // reflect in response
+    }
+
+    console.timeEnd('💾 Update DB if needed');
+
+    console.timeEnd('🔄 API /api/employee total');
 
     return NextResponse.json({
       employee,
       attendance,
       transactions,
+      totalTransactions,
+      page,
+      pageSize,
       workingDays,
       absents,
       halfDays,
@@ -125,10 +174,9 @@ const currentMonthBalance = await prisma.monthlyBalance.findFirst({
       loanRemaining: employee.loanRemaining,
       currentBalance: employee.currentBalance,
     });
-
   } catch (err) {
-    console.error(err);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    console.error('❌ /api/employee error:', err);
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }
 
