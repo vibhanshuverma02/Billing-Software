@@ -108,8 +108,6 @@ const InvoicePDF = ({
 
   invoiceNo,
   date,
-  
-  customerID,
   customerName,
   mobileNo,
   address,
@@ -124,9 +122,10 @@ const InvoicePDF = ({
     <Document>
     <Page size="A3" style={styles.page}>
     <View style={{ alignItems: 'center', justifyContent: 'center', marginTop: 20 }}>
-  <Text style={{ fontWeight: 'bold', fontSize: 16 }}>kukreja saree center</Text>
-  <Text style={{ fontWeight: 'bold', fontSize: 16 }}>Address: Main market roorkee</Text>
-  <Text style={{ fontWeight: 'bold', fontSize: 16 }}>Contact: 8439751861</Text>
+  <Text style={{ fontWeight: 'bold', fontSize: 26 }}> KUKREJA SAREE CENTER </Text>
+ <Text style={{ fontWeight: 'bold', fontSize: 16 }}>GST: 05ASTPK6699N1ZJ</Text>
+  <Text style={{ fontWeight: 'bold', fontSize: 16 }}>Address:Arya Samaj road B.T. Ganj Roorkee</Text>
+  <Text style={{ fontWeight: 'bold', fontSize: 16 }}>Contact:  8439751861</Text>
  
 </View>
 
@@ -136,7 +135,7 @@ const InvoicePDF = ({
         
         <Text>Invoice No: {invoiceNo}</Text>
         <Text>Date: {new Date(date).toLocaleString()}</Text>
-        <Text style={{ fontWeight: 'bold', fontSize: 16 }}>GST: SN0987BN87522</Text>
+        
       </View>
 
       <Text style={styles.title}>INVOICE</Text>
@@ -145,7 +144,7 @@ const InvoicePDF = ({
       <View style={styles.section}>
         <Text style={styles.billTo}>Bill To:</Text>
         <Text>Customer: {customerName}</Text>
-        <Text>customerID:{customerID}</Text>
+  
         <Text>Address: {address}</Text>
         <Text>Contact: {mobileNo}</Text>
       </View>
@@ -194,7 +193,7 @@ const InvoicePDF = ({
       <View style={styles.footer}>
         <Text>Thank you visit again!</Text>
         <Text>For any queries, please contact us at 8439751861 </Text>
-        <Text>© 2025 kukreja saree center  main market roorkee 247667. All rights reserved.</Text>
+        <Text>© 2025 kukreja saree center  Arya Samaj road B.T. Ganj Roorkee 247667. All rights reserved.</Text>
       </View>
       
     </Page>

@@ -430,7 +430,7 @@ customerID={customerID || "NA"}
       />
     ).toBlob();
 
-    const fileName = `invoice_${invoiceNo}.pdf`;
+    const fileName = `customername_${state.customername}.pdf`;
     saveAs(blob, fileName);
     const base64 = await blob.arrayBuffer().then(buf => btoa(String.fromCharCode(...new Uint8Array(buf)))
   );

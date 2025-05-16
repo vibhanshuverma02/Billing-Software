@@ -27,8 +27,25 @@ export type Action =
 
 // ✅ Helper to filter attendance by selected month
 function filterMonthAttendance(att: Attendance[], month: Date): Attendance[] {
-  return att.filter((a) => isSameMonth(new Date(a.date), month));
+  if (!month || !(month instanceof Date) || isNaN(month.getTime())) {
+    console.warn('filterMonthAttendance: Invalid month:', month);
+    return [];
+  }
+
+  return att.filter((a) => {
+    if (!a.date) {
+      console.warn('filterMonthAttendance: Attendance item with missing date:', a);
+      return false;
+    }
+    const d = new Date(a.date);
+    if (isNaN(d.getTime())) {
+      console.warn('filterMonthAttendance: Attendance item with invalid date:', a);
+      return false;
+    }
+    return isSameMonth(d, month);
+  });
 }
+
 
 // ✅ Initial state function
 export const initialState = (props: {
