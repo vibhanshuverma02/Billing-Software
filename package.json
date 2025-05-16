@@ -74,10 +74,10 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
-    "@prisma/client": "^6.7.0",
+    "@prisma/client": "^6.8.1",
     "@radix-ui/react-switch": "^1.2.4",
     "@types/file-saver": "^2.0.7",
-    "@types/node": "^20",
+    "@types/node": "^20.17.47",
     "@types/nodemailer": "^6.4.17",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
@@ -87,7 +87,8 @@
     "eslint-config-next": "15.2.0",
     "next-pwa": "^5.6.0",
     "prisma": "^6.7.0",
-    "typescript": "^5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3",
     "webpack": "^5.98.0"
   }
 }

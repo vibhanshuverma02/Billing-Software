@@ -1,5 +1,5 @@
 "use client";
-import { Page, Text, View, Document, StyleSheet, Font } from '@react-pdf/renderer';
+import { Page, Text, View, Document, StyleSheet, Font ,Image } from '@react-pdf/renderer';
 
 interface InvoicePDFProps {
   invoiceNo: string;
@@ -121,6 +121,10 @@ const InvoicePDF = ({
 }: InvoicePDFProps) => (
     <Document>
     <Page size="A3" style={styles.page}>
+          <Image 
+    src="/images/final2-Photoroom.png"
+    style={{ width: 80, height: 50, alignSelf: 'center', marginBottom: 10 }} 
+      />
     <View style={{ alignItems: 'center', justifyContent: 'center', marginTop: 20 }}>
   <Text style={{ fontWeight: 'bold', fontSize: 26 }}> KUKREJA SAREE CENTER </Text>
  <Text style={{ fontWeight: 'bold', fontSize: 16 }}>GST: 05ASTPK6699N1ZJ</Text>
@@ -192,6 +196,7 @@ const InvoicePDF = ({
       {/* ✅ Footer */}
       <View style={styles.footer}>
         <Text>Thank you visit again!</Text>
+        <Text> No Claim No Exchange </Text>
         <Text>For any queries, please contact us at 8439751861 </Text>
         <Text>© 2025 kukreja saree center  Arya Samaj road B.T. Ganj Roorkee 247667. All rights reserved.</Text>
       </View>

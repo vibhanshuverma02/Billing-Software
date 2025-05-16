@@ -1,11 +1,11 @@
 // File: app/api/employees/route.ts
 
-import { NextRequest, NextResponse } from 'next/server';
+import {  NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../auth/[...nextauth]/options'; // adjust this import path as needed
 import { prisma } from '@/config/db';
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.username) {
