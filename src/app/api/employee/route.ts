@@ -208,74 +208,103 @@ async function updateEmployee(
   const start = new Date(`${month}-01T00:00:00.000Z`);
   if (start > new Date()) return { error: "Cannot calculate salary for a future month" };
 
-  const [employee, attendance, existingTxns, previousBalance] = await Promise.all([
+  const [employee, attendance, existingTxns, previousBalance, existingMonthly] = await Promise.all([
     prisma.employee.findUnique({ where: { id: employeeId } }),
     prisma.attendance.findMany({
-      where: { 
-        employeeId, 
-        date: { gte: start, lt: new Date(start.getFullYear(), start.getMonth() + 1, 1) } 
+      where: {
+        employeeId,
+        date: { gte: start, lt: new Date(start.getFullYear(), start.getMonth() + 1, 1) }
       },
     }),
     prisma.transaction.findMany({
-      where: { 
-        employeeId, 
-        date: { gte: start, lt: new Date(start.getFullYear(), start.getMonth() + 1, 1) } 
+      where: {
+        employeeId,
+        date: { gte: start, lt: new Date(start.getFullYear(), start.getMonth() + 1, 1) }
       },
     }),
     prisma.monthlyBalance.findFirst({
       where: { employeeId, month: getPreviousMonth(month) },
       orderBy: { id: 'desc' },
     }),
+    prisma.monthlyBalance.findUnique({
+      where: {
+        employeeId_month: {
+          employeeId,
+          month,
+        }
+      }
+    })
   ]);
 
   if (!employee) return { error: "Employee not found" };
 
   const { workingDays } = calculateDays(month);
-  const { calculatedSalary, presentDays, absents, halfDays } = calculateSalary(attendance, employee.baseSalary, workingDays);
+  const { calculatedSalary, presentDays, absents, halfDays } = calculateSalary(
+    attendance,
+    employee.baseSalary,
+    workingDays
+  );
 
   const newTransactions = await filterNewTransactions(existingTxns, transactions);
   const allTxns = [...existingTxns, ...newTransactions];
 
   const previousCarryForward = previousBalance?.newCarryForward || 0;
-
   const { totalDeductions, advanceAmount, otherDeductions } = calculateDeductions(allTxns, previousCarryForward);
 
   const rawNetPayable = calculatedSalary - totalDeductions;
   const netPayable = manualOverride ?? Math.max(0, rawNetPayable);
 
-  // First, get newCarryForward by calling updateCarryForward
   const newCarryForward = await updateCarryForward(employeeId, month, rawNetPayable);
 
-  // Then, batch update in a transaction
- await prisma.$transaction([
+  const monthlyBalanceData = {
+    employeeId,
+    month,
+    carryForward: previousCarryForward,
+    salaryEarned: calculatedSalary,
+    totalDeductions,
+    netPayable,
+    amountPaid: manualOverride ?? netPayable,
+    newCarryForward,
+  };
+
+  const transactionOperations = newTransactions.map((t) =>
+    prisma.transaction.create({
+      data: {
+        employeeId,
+        type: t.type,
+        amount: t.amount,
+        description: t.description ?? null,
+        date: new Date(t.date),
+      },
+    })
+  );
+
+  const updateOperations = [
     prisma.employee.update({
       where: { id: employeeId },
       data: { currentBalance: newCarryForward },
     }),
-    prisma.monthlyBalance.create({
-      data: {
-        employeeId,
-        month,
-        carryForward: previousCarryForward,
-        salaryEarned: calculatedSalary,
-        totalDeductions,
-        netPayable,
-        amountPaid: manualOverride ?? netPayable,
-        newCarryForward,
-      },
-    }),
-    ...newTransactions.map((t) =>
-      prisma.transaction.create({
-        data: {
-          employeeId,
-          type: t.type,
-          amount: t.amount,
-          description: t.description ?? null,
-          date: new Date(t.date),
-        },
-      })
-    ),
-  ]);
+    ...(existingMonthly
+      ? [
+          prisma.monthlyBalance.update({
+            where: {
+              employeeId_month: {
+                employeeId,
+                month,
+              },
+            },
+            data: monthlyBalanceData,
+          }),
+        ]
+      : [
+          prisma.monthlyBalance.create({
+            data: monthlyBalanceData,
+          }),
+        ]),
+    ...transactionOperations,
+  ];
+
+  await prisma.$transaction(updateOperations);
 
   return {
     finalSalary: netPayable,
@@ -292,6 +321,7 @@ async function updateEmployee(
     newCarryForward,
   };
 }
+
 
 
 async function update_attendance(
