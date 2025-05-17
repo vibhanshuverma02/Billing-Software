@@ -165,6 +165,8 @@ return new NextResponse(buffer, {
     }
   }
 // ✅ POST API - Create Customer and Invoice
+
+
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -175,7 +177,6 @@ export async function POST(req: Request) {
 
     const body = await req.json();
     const {
-      // username,
       customerName,
       mobileNo,
       address,
@@ -183,87 +184,102 @@ export async function POST(req: Request) {
       previous,
       paidAmount,
       SuperTotal,
-      Refund
+      Refund,
     } = body;
 
-    // Convert values to numbers
-const parsedGrandtotal = parseFloat(Grandtotal);
-const parsedPreviousDue = parseFloat(previous);
-const parsedPaidAmount = parseFloat(paidAmount);
+    const parsedGrandtotal = parseFloat(Grandtotal);
+    const parsedPreviousDue = parseFloat(previous);
+    const parsedPaidAmount = parseFloat(paidAmount);
 
-// Validate input
-if (
-  !customerName || 
-  !mobileNo || 
-  isNaN(parsedGrandtotal) || 
-  isNaN(parsedPreviousDue) || 
-  isNaN(parsedPaidAmount) 
- 
-){
+    // Validate input
+    if (
+      !customerName ||
+      !mobileNo ||
+      isNaN(parsedGrandtotal) ||
+      isNaN(parsedPreviousDue) ||
+      isNaN(parsedPaidAmount)
+    ) {
       return NextResponse.json({ message: 'Missing required fields or invalid format' }, { status: 400 });
     }
 
-     const username = session.user.username;
+    const username = session.user.username;
+    const isAnonymous = customerName === "NA" && mobileNo === "0000000000";
 
-    // ✅ Check if the customer already exists
-    let customer = await prisma.customer.findFirst({
-      where: {
-        AND: [
-          { username },
-          { customerName },
-          { mobileNo }
-        ]
-      }
-    });
+    let customer = null;
 
-    // ✅ Create new customer if not found
-    if (!customer) {
-      customer = await prisma.customer.create({
-        data: {
+    if (isAnonymous) {
+      // ✅ Use shared "Anonymous" customer for all anonymous invoices
+      customer = await prisma.customer.findFirst({
+        where: {
           username,
-          customerName,
-          mobileNo,
-          address: address || '',
-          balance: 0,
-          
-          
- 
-        }
+          customerName: "NA",
+          mobileNo: "0000000000",
+        },
       });
-    }
 
-    // ✅ Calculate balance and payment status
-    let balanceDue = SuperTotal - parsedPaidAmount;
-    const paymentStatus = 
-      balanceDue <= 0  ? 'paid' : 'due'
-  //     (paidAmount > SuperTotal ? 'Paid' : 'Due')
-   if ( balanceDue<0){
-       balanceDue =0 ;
-   }
-      const [newInvoice,] = await prisma.$transaction([
-        prisma.invoice.create({
+      if (!customer) {
+        customer = await prisma.customer.create({
           data: {
             username,
-            customerId: customer.id,
-            customerName,
-            invoiceNo: `INV-${Date.now()}-${uuidv4().split('-')[0]}`,
-            totalAmount: parsedGrandtotal,
-            previousDue: parsedPreviousDue,
-            paidAmount: parsedPaidAmount,
-            balanceDue,
-            paymentStatus,
-            supertotal:SuperTotal,
-            refund:Refund
+            customerName: "NA",
+            mobileNo: "0000000000",
+            address: "",
+            balance: 0,
           },
-        }),
-      
-        prisma.customer.update({
-          where: { id: customer.id },
+        });
+      }
+    } else {
+      // ✅ Regular customer lookup/creation
+      customer = await prisma.customer.findFirst({
+        where: {
+          AND: [
+            { username },
+            { customerName },
+            { mobileNo }
+          ]
+        }
+      });
+
+      if (!customer) {
+        customer = await prisma.customer.create({
           data: {
-            balance: balanceDue,
-          },
-        }),
-      ]);
+            username,
+            customerName,
+            mobileNo,
+            address: address || '',
+            balance: 0,
+          }
+        });
+      }
+    }
+
+    // ✅ Calculate balance and status
+    let balanceDue = SuperTotal - parsedPaidAmount;
+    const paymentStatus = balanceDue <= 0 ? 'paid' : 'due';
+    if (balanceDue < 0) balanceDue = 0;
+
+    const [newInvoice] = await prisma.$transaction([
+      prisma.invoice.create({
+        data: {
+          username,
+          customerId: customer.id, // always exists now
+          customerName,
+          invoiceNo: `INV-${Date.now()}-${uuidv4().split('-')[0]}`,
+          totalAmount: parsedGrandtotal,
+          previousDue: parsedPreviousDue,
+          paidAmount: parsedPaidAmount,
+          balanceDue,
+          paymentStatus,
+          supertotal: SuperTotal,
+          refund: Refund,
+        },
+      }),
+
+      prisma.customer.update({
+        where: { id: customer.id },
+        data: { balance: balanceDue },
+      }),
+    ]);
 
     return NextResponse.json({
       message: 'Invoice created successfully',
@@ -272,13 +288,11 @@ if (
       balanceDue,
       paymentStatus,
     });
-
   } catch (error) {
     console.error('Error generating invoice:', error);
     return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
   }
 }
-  // ✅ PUT handler to update pdfPath using customerId
 
   
 export async function PUT(request: Request) {

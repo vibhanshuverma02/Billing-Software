@@ -1,11 +1,10 @@
 "use client";
-import { Page, Text, View, Document, StyleSheet, Font ,Image } from '@react-pdf/renderer';
+import { Page, Text, View, Document, StyleSheet, Font, Image } from '@react-pdf/renderer';
 
 interface InvoicePDFProps {
+  pageSize: 'A4' | 'A5';
   invoiceNo: string;
   date: string;
-  username: string;
-  customerID:string;
   customerName: string;
   mobileNo: string;
   address: string;
@@ -23,89 +22,106 @@ interface InvoicePDFProps {
   balanceDue: number | null;
   paymentStatus: string | null;
 }
+
 Font.register({
   family: 'NotoSans',
   src: '/font/NotoSans-Regular.ttf',
 });
 
-// ✅ PDF Styles
-const styles = StyleSheet.create({
-    page: {
-        fontFamily: 'NotoSans',
-        fontSize: 12,
-        padding: 30,
-      },
-      header: {
-        textAlign: 'right',
-        marginBottom: 20,
-      },
-      title: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        textAlign: 'center',
-        marginBottom: 10,
-      },
-      section: {
-        marginBottom: 20,
-        lineHeight: 1.5,
-      },
-      user:{
-        textAlign: 'left',
-        fontSize: 10,
-        marginTop: 30,
-        color: '#555',
-      },
-      billTo: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        marginBottom: 5,
-      },
-      paymentStatus: {
-        textAlign: 'right',
-        fontSize: 12,
-        backgroundColor: '#f2f2f2',
-        padding: 5,
-        borderRadius: 5,
-        width: 'auto',
-        alignSelf: 'flex-end',
-        marginBottom: 10,
-      },
-      table: {
-        display: 'flex',       
-        flexDirection: 'column', width: '100%', borderStyle: 'solid', borderWidth: 1
-      },
-      tableRow: {
-        flexDirection: 'row',
-      },
-      tableHeader: {
-        backgroundColor: '#f2f2f2',
-        fontWeight: 'bold',
-      },
-      tableCol: {
-        width: '16.66%',
-        padding: 5,
-        border: '1px solid #000',
-        textAlign: 'center',
-      },
-        totals: {
-    textAlign: 'right',
-    marginTop: 10,
-  },
-  totalText: {
-    marginBottom: 15, // Adjust the space between lines here
-  },
-
-      footer: {
-        textAlign: 'center',
-        fontSize: 10,
-        marginTop: 30,
-        color: '#555',
-      },
+Font.register({
+  family: 'NotoSansDevanagari',
+  src: '/font/NotoSansDevanagari-Regular.ttf',
 });
 
-// ✅ PDF Component
-const InvoicePDF = ({
+const getStyles = (pageSize: 'A4' | 'A5') =>
+  StyleSheet.create({
+    page: {
+      fontFamily: 'NotoSans',
+      fontSize: pageSize === 'A4' ? 10 : 8,
+      padding: pageSize === 'A4' ? 24 : 16,
+    },
+    header: {
+      textAlign: 'right',
+      margintop: pageSize === 'A4'? 10 : 5 ,
+      marginBottom: pageSize === 'A4' ? 10 : 5,
+    },
+    title: {
+      fontSize: pageSize === 'A4' ? 16 : 12,
+      fontWeight: 'bold',
+      textAlign: 'center',
+      marginBottom: pageSize === 'A4' ? 6 : 4,
+    },
+    section: {
+      marginBottom: pageSize === 'A4' ? 8 : 5,
+      lineHeight: 1.3,
+    },
+    user: {
+      textAlign: 'left',
+      fontSize: pageSize === 'A4' ? 9 : 7,
+      marginTop: pageSize === 'A4' ? 18 : 14,
+      color: '#555',
+    },
+    billTo: {
+      fontSize: pageSize === 'A4' ? 8 : 6,
+      fontWeight: 'bold',
+      
+    },
+    paymentStatus: {
+      textAlign: 'right',
+      fontSize: pageSize === 'A4' ? 8 : 6,
+      backgroundColor: '#f2f2f2',
+      padding: pageSize === 'A4' ? 4 : 2,
+      borderRadius: 1,
+      alignSelf: 'flex-end',
+      marginBottom: pageSize === 'A4' ? 6 : 1,
+    },
+    table: {
+      display: 'flex',
+      flexDirection: 'column',
+      width: '100%',
+      borderStyle: 'solid',
+      borderWidth: 1,
+      marginTop: pageSize === 'A4' ? 8 : 5,
+    },
+    tableRow: {
+      flexDirection: 'row',
+    },
+    tableHeader: {
+      backgroundColor: '#f2f2f2',
+      fontWeight: 'bold',
+    },
+    tableCol: {
+      width: '16.66%',
+      padding: pageSize === 'A4' ? 6 : 3,
+      border: '1px solid #000',
+      fontSize: pageSize === 'A4' ? 9 : 7,
+      textAlign: 'center',
+    },
+    totals: {
+      textAlign: 'right',
+      marginTop: pageSize === 'A4' ? 8 : 6,
+    },
+    totalText: {
+      fontSize: pageSize === 'A4' ? 8 : 6,
+      marginBottom: pageSize === 'A4' ? 6 : 4,
+    },
+    footer: {
+      textAlign: 'center',
+      fontSize: pageSize === 'A4' ? 9 : 7,
+      marginTop: pageSize === 'A4' ? 24 : 16,
+      color: '#555',
+    },
+    bilingualText: {
+      fontFamily: 'NotoSansDevanagari',
+      fontSize: pageSize === 'A4' ? 9 : 7,
+      textAlign: 'center',
+      marginTop: pageSize === 'A4' ? 14 : 10,
+      lineHeight: 1.5,
+    },
+  });
 
+const InvoicePDF = ({
+  pageSize,
   invoiceNo,
   date,
   customerName,
@@ -118,92 +134,108 @@ const InvoicePDF = ({
   paidAmount,
   balanceDue,
   paymentStatus,
-}: InvoicePDFProps) => (
+}: InvoicePDFProps) => {
+  const styles = getStyles(pageSize);
+
+  return (
     <Document>
-    <Page size="A3" style={styles.page}>
-          <Image 
-    src="/images/final2-Photoroom.png"
-    style={{ width: 80, height: 50, alignSelf: 'center', marginBottom: 10 }} 
-      />
-    <View style={{ alignItems: 'center', justifyContent: 'center', marginTop: 20 }}>
-  <Text style={{ fontWeight: 'bold', fontSize: 26 }}> KUKREJA SAREE CENTER </Text>
- <Text style={{ fontWeight: 'bold', fontSize: 16 }}>GST: 05ASTPK6699N1ZJ</Text>
-  <Text style={{ fontWeight: 'bold', fontSize: 16 }}>Address:Arya Samaj road B.T. Ganj Roorkee</Text>
-  <Text style={{ fontWeight: 'bold', fontSize: 16 }}>Contact:  8439751861</Text>
- 
-</View>
+      <Page size={pageSize} style={styles.page}>
+        <Image
+          src="/images/final2-Photoroom.png"
+          style={{ width: pageSize === 'A4' ? 80 : 60, height: pageSize === 'A4' ? 55 : 40, alignSelf: 'center', marginBottom: pageSize === 'A4' ? 10: 5 }}
+        />
 
-      
-      {/* ✅ Header Section */}
-      <View style={styles.header}>
-        
-        <Text>Invoice No: {invoiceNo}</Text>
-        <Text>Date: {new Date(date).toLocaleString()}</Text>
-        
-      </View>
-
-      <Text style={styles.title}>INVOICE</Text>
-
-      {/* ✅ Bill To Section */}
-      <View style={styles.section}>
-        <Text style={styles.billTo}>Bill To:</Text>
-        <Text>Customer: {customerName}</Text>
-  
-        <Text>Address: {address}</Text>
-        <Text>Contact: {mobileNo}</Text>
-      </View>
-
-      <View style={styles.paymentStatus}>
-        <Text>Payment Status: {paymentStatus}</Text>
-      </View>
-
-      {/* ✅ Invoice Table */}
-      <View style={styles.table}>
-        <View style={[styles.tableRow, styles.tableHeader]}>
-          <Text style={styles.tableCol}>Product</Text>
-          <Text style={styles.tableCol}>HSN</Text>
-          <Text style={styles.tableCol}>Qty</Text>
-          <Text style={styles.tableCol}>Rate</Text>
-          <Text style={styles.tableCol}>GST %</Text>
-          <Text style={styles.tableCol}>Total</Text>
+        <View style={{ alignItems: 'center', justifyContent: 'center', marginTop: pageSize === 'A4' ? 18 : 10 }}>
+          <Text style={{ fontWeight: 'bold', fontSize: pageSize === 'A4' ? 16 : 12 }}>KUKREJA SAREE CENTER</Text>
+          <Text style={styles.bilingualText}>(सरदार जी )</Text>
+          <Text style={{ fontWeight: 'bold', fontSize: pageSize === 'A4' ? 10 : 8 }}>GST: 05ASTPK6699N1ZJ</Text>
+          <Text style={{ fontWeight: 'bold', fontSize: pageSize === 'A4' ? 10 : 8 }}>Address: Arya Samaj road B.T. Ganj Roorkee</Text>
+          <Text style={{ fontWeight: 'bold', fontSize: pageSize === 'A4' ? 10 : 8 }}>Contact: 8439751861</Text>
         </View>
 
-        {items.map((item, index) => (
-          <View key={index} style={styles.tableRow}>
-            <Text style={styles.tableCol}>{item.itemName}</Text>
-            <Text style={styles.tableCol}>{item.hsn}</Text>
-            <Text style={styles.tableCol}>{item.quantity}</Text>
-            <Text style={styles.tableCol}>₹{item.rate.toFixed(2)}</Text>
-            <Text style={styles.tableCol}>{item.gstRate}%</Text>
-            <Text style={styles.tableCol}>
-              ₹{(item.rate * item.quantity * (1 + item.gstRate / 100)).toFixed(2)}
-            </Text>
+        <View
+  style={{
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: pageSize === 'A4' ? 16 : 10,
+    marginBottom: pageSize === 'A4' ? 10 : 6,
+  }}
+>
+  <View>
+    <Text>Invoice No: {invoiceNo}</Text>
+    <Text>Date: {new Date(date).toLocaleString()}</Text>
+  </View>
+
+  {paymentStatus && (
+    <Text style={styles.paymentStatus}>Payment Status: {paymentStatus}</Text>
+  )}
+</View>
+
+<Text style={styles.title}>INVOICE</Text>
+
+
+       {!(customerName === 'NA' && mobileNo === '0000000000') && (
+  <View style={styles.section}>
+    <Text style={styles.billTo}>Bill To:</Text>
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+      <Text style={{ flexShrink: 1 }}>Customer: {customerName}</Text>
+      <Text style={{ flexShrink: 1 }}>Address: {address}</Text>
+      <Text style={{ flexShrink: 1 }}>Contact: {mobileNo}</Text>
+    </View>
+  </View>
+)}
+
+
+        <View style={styles.table}>
+          <View style={[styles.tableRow, styles.tableHeader]}>
+            <Text style={styles.tableCol}>Product</Text>
+            <Text style={styles.tableCol}>HSN</Text>
+            <Text style={styles.tableCol}>Qty</Text>
+            <Text style={styles.tableCol}>Rate</Text>
+            <Text style={styles.tableCol}>GST %</Text>
+            <Text style={styles.tableCol}>Total</Text>
           </View>
-        ))}
-      </View>
 
-      {/* ✅ Totals */}
-      <View style={styles.totals}>
-        <Text style={{ fontWeight: 'bold', fontSize: 16 }}>Subtotal: ₹{(Grandtotal - gstTotal).toFixed(2)}</Text>
-        <Text style={{ fontWeight: 'bold', fontSize: 16 }}>GST: ₹{gstTotal.toFixed(2)}</Text>
-        <Text>PreviousBalance: ₹{previousBalance.toFixed(2)}</Text>
-        <Text style={{ fontWeight: 'bold', fontSize: 16 }}>Grand Total: ₹{Grandtotal.toFixed(2)}</Text>
-        <Text>Paid Amount: ₹{paidAmount.toFixed(2)}</Text>
-        <Text>Refund: ₹{Math.max(paidAmount - Grandtotal, 0).toFixed(2)}</Text>
-        <Text>Balance Due: ₹{balanceDue}</Text>
-      </View>
+          {items.map((item, index) => (
+            <View key={index} style={styles.tableRow}>
+              <Text style={styles.tableCol}>{item.itemName}</Text>
+              <Text style={styles.tableCol}>{item.hsn}</Text>
+              <Text style={styles.tableCol}>{item.quantity}</Text>
+              <Text style={styles.tableCol}>₹{item.rate.toFixed(2)}</Text>
+              <Text style={styles.tableCol}>{item.gstRate}%</Text>
+              <Text style={styles.tableCol}>
+                ₹{(item.rate * item.quantity * (1 + item.gstRate / 100)).toFixed(2)}
+              </Text>
+            </View>
+          ))}
+        </View>
 
-      {/* ✅ Footer */}
-      <View style={styles.footer}>
-        <Text>Thank you visit again!</Text>
-        <Text> No Claim No Exchange </Text>
-        <Text>For any queries, please contact us at 8439751861 </Text>
-        <Text>© 2025 kukreja saree center  Arya Samaj road B.T. Ganj Roorkee 247667. All rights reserved.</Text>
-      </View>
-      
-    </Page>
-  </Document>
-);
+        <View style={styles.totals}>
+          <Text style={{ fontWeight: 'bold', fontSize: pageSize === 'A4' ? 12 : 10 }}>
+            Subtotal: ₹{(Grandtotal - gstTotal).toFixed(2)}
+          </Text>
+          <Text style={{ fontWeight: 'bold', fontSize: pageSize === 'A4' ? 12 : 10 }}>GST: ₹{gstTotal.toFixed(2)}</Text>
+          <Text>Previous Balance: ₹{previousBalance.toFixed(2)}</Text>
+          <Text style={{ fontWeight: 'bold', fontSize: pageSize === 'A4' ? 12 : 10 }}>
+            Grand Total: ₹{Grandtotal.toFixed(2)}
+          </Text>
+          <Text>Paid Amount: ₹{paidAmount.toFixed(2)}</Text>
+          <Text>Refund: ₹{Math.max(paidAmount - Grandtotal, 0).toFixed(2)}</Text>
+          <Text>Balance Due: ₹{balanceDue}</Text>
+        </View>
 
+        <View style={styles.footer}>
+          <Text>Thank you visit again!</Text>
+          <Text style={styles.bilingualText}>
+            फॉल की सभी साड़ियाँ और लहंगे के लिए कृपया बिल साथ लाएँ, क्योंकि बिना बिल के सामान नहीं मिलेगा।
+          </Text>
+          <Text>No Claim No Exchange</Text>
+          <Text>For any queries, please contact us at 8439751861</Text>
+          <Text>© kukreja saree center Arya Samaj road B.T. Ganj Roorkee 247667. All rights reserved.</Text>
+        </View>
+      </Page>
+    </Document>
+  );
+};
 
 export default InvoicePDF;

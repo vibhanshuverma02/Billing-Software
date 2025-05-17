@@ -54,12 +54,19 @@ import { NextResponse } from 'next/server';
       const page = parseInt(pageParam || '1');
       const limit = parseInt(limitParam || '20');
   
-      const customers = await prisma.customer.findMany({
-        where:{username:username},
-        skip: (page - 1) * limit,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-      });
+     const customers = await prisma.customer.findMany({
+  where: {
+    username: username,
+    NOT: {
+      customerName: "NA",
+      mobileNo: "0000000000"
+    }
+  },
+  skip: (page - 1) * limit,
+  take: limit,
+  orderBy: { createdAt: 'desc' },
+});
+
   
       const totalCount = await prisma.customer.count(
         {

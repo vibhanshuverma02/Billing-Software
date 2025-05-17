@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { stockSchema } from "@/schema/stockSchema";
 import { invoiceschema } from "@/schema/invoiceschema";
 import { pdf } from "@react-pdf/renderer";  // ✅ Import PDFDownloadLink
-import InvoicePDF from  "@/components/PDF" ; 
+import InvoicePDFWrapper from "@/components/ui/InvoiceWrapper"; 
 import { saveAs } from "file-saver";   // ✅ Import he PDF component
 import { z } from "zod";
 import { Loader2, Trash2 } from 'lucide-react';
@@ -105,6 +105,8 @@ const Test = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [paidamount,  setPaidamount] = useState<number>(0);
   const [refund, setRefund] = useState(0);
+  const [isAnonymous, setIsAnonymous] = useState(false);
+
   // const[invoiceId , setInvoiceID]= useState<number>(0);
   
  // ✅ Combined customer details state
@@ -121,19 +123,16 @@ useEffect(() => {
   }
 }, [session, status]);
 
-
-// ✅ Debounced API call
+// ✅ Debounced API call using useCallback
 const debouncedFetch = useCallback((func: () => void, delay: number) => {
-  if (debounceRef.current) clearTimeout(debounceRef.current); // Clear previous timer
+  if (debounceRef.current) clearTimeout(debounceRef.current);
   debounceRef.current = setTimeout(() => {
-    func(); // Execute the API call after the delay
+    func();
   }, delay);
 }, []);
 
-// ✅ Combined API Call
+// ✅ Fetch Customer API call
 const fetchCustomer = useCallback(async () => {
- 
-
   dispatch({ type: "TOGGLE_LOADING", payload: true });
   dispatch({ type: "SET_MESSAGE", payload: "" });
 
@@ -141,26 +140,22 @@ const fetchCustomer = useCallback(async () => {
     console.log("Fetching customer...");
     const response = await axios.get("/api/invoice", {
       params: {
-       
         customerName: state.customername,
         customermobileNo: state.customermobileNo,
       },
-      
     });
+
     if (response.data.isNewCustomer) {
       dispatch({ type: "SET_MESSAGE", payload: "New Customer" });
-      setPrevious(0); // Since it's a new customer, set previous balance to 0
-      return; // Exit early
+      setPrevious(0);
+      return;
     }
-      // ✅ Update previous balance
-      setPrevious(response.data.customer.balance|| 0); // Default to 0 if no value is provided
 
+    setPrevious(response.data.customer?.balance || 0);
     dispatch({
       type: "SET_MESSAGE",
       payload: response.data.message || "Customer found!",
-
     });
-    console.log(response.data.message )
   } catch (error) {
     const axiosError = error as AxiosError<ApiResponse>;
     dispatch({
@@ -172,25 +167,26 @@ const fetchCustomer = useCallback(async () => {
   }
 }, [state.customername, state.customermobileNo]);
 
-// ✅ Single useEffect for Combined API Call
+// ✅ useEffect for validation & conditional API call
+useEffect(() => {
+  const name = state.customername.trim();
+  const mobile = state.customermobileNo.trim();
 
-  // ✅ useEffect for API Calls and Validation
-  useEffect(() => {
-    if (!state.customername.trim() || !state.customermobileNo.trim()) {
-      // ✅ Clear message when both fields are empty
-      dispatch({ type: "SET_MESSAGE", payload: "" });
-      return;
-    }
+  if (isAnonymous) return;
 
-    if (state.customername.trim() || state.customermobileNo.trim()) {
-      // ✅ Only call API if mobile number is 10 digits
-      if (/^\d{10}$/.test(state.customermobileNo) || !state.customermobileNo) {
-        debouncedFetch(fetchCustomer, 500);
-      }
-    }
-  }, [state.customername, state.customermobileNo, debouncedFetch, fetchCustomer]);
+  // ✅ Clear message when both fields are empty
+  if (!name && !mobile) {
+    dispatch({ type: "SET_MESSAGE", payload: "" });
+    return;
+  }
 
-  // ✅ Initialize Form with Zod Schema
+  // ✅ Trigger fetch if mobile number is valid
+  if (/^\d{10}$/.test(mobile)) {
+    debouncedFetch(fetchCustomer, 500);
+  }
+}, [state.customername, state.customermobileNo, isAnonymous, debouncedFetch, fetchCustomer]);
+
+// ✅ Prefill customer info from URL params
 const searchParams = useSearchParams();
 
 useEffect(() => {
@@ -205,6 +201,7 @@ useEffect(() => {
     dispatch({ type: "SET_MOBILE", payload: mobileFromURL });
   }
 }, [searchParams]);
+
 
   const form = useForm<InvoiceFormData>({
     resolver: zodResolver(
@@ -412,11 +409,9 @@ useEffect(() => {
 
     // ✅ Ensure we're using the stored state, not `form.getValues()`
     const blob = await pdf(
-      <InvoicePDF 
+      <InvoicePDFWrapper 
         invoiceNo={invoiceNo}
         date={date}
-        username={username||"NA"}
-customerID={customerID || "NA"}
         customerName={state.customername}
         mobileNo={state.customermobileNo}
         address={form.getValues("address") || "NA"}
@@ -468,6 +463,28 @@ customerID={customerID || "NA"}
                 <Input placeholder="Loading..." value={date || ""} readOnly className="w-full" />
               </FormItem>
             </div>
+<div className="flex items-center space-x-2 mb-4">
+  <input
+    type="checkbox"
+    checked={isAnonymous}
+    onChange={(e) => {
+      const checked = e.target.checked;
+      setIsAnonymous(checked);
+      if (checked) {
+        dispatch({ type: "SET_NAME", payload: "NA" });
+        dispatch({ type: "SET_MOBILE", payload: "0000000000" });
+      } else {
+        dispatch({ type: "SET_NAME", payload: "" });
+        dispatch({ type: "SET_MOBILE", payload: "" });
+      }
+    }}
+    id="anonymousToggle"
+    className="h-5 w-5"
+  />
+  <label htmlFor="anonymousToggle" className="text-sm font-medium text-gray-700">
+    genrate bill for non saree and lehenge customers
+  </label>
+</div>
 
             {/* Customer Info */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -481,6 +498,7 @@ customerID={customerID || "NA"}
                       {...field}
                       value={state.customername}
                       onChange={(e) => dispatch({ type: "SET_NAME", payload: e.target.value })}
+                      disabled={isAnonymous}
                       className="w-full"
                     />
                   </FormItem>
@@ -497,6 +515,7 @@ customerID={customerID || "NA"}
                       {...field}
                       value={state.customermobileNo}
                       onChange={(e) => dispatch({ type: "SET_MOBILE", payload: e.target.value })}
+                      disabled={isAnonymous}
                       className="w-full"
                     />
                   </FormItem>
