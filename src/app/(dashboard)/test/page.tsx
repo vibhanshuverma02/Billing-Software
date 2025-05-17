@@ -338,6 +338,7 @@ useEffect(() => {
       setInvoiceNo(response.data.invoice.invoiceNo);
       setDate(response.data.invoice.invoiceDate);
       setCustomerID(response.data.customer.id);
+      console.log(customerID)
       console.log(response.data.customer.id);
       setBalanceDue(response.data.balanceDue);
       setPaymentStatus(response.data.paymentStatus);
