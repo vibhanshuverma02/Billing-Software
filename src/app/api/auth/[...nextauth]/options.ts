@@ -1,7 +1,7 @@
 import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
-import {prisma} from '@/config/db'; // Importing Prisma from your config
+import { prisma } from '@/config/db'; // Importing Prisma from your config
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -9,20 +9,24 @@ export const authOptions: NextAuthOptions = {
       id: 'credentials',
       name: 'Credentials',
       credentials: {
-        email: { label: 'Email', type: 'text', placeholder: 'user@example.com' },
+        identifier: { label: 'Email or Username', type: 'text', placeholder: 'user@example.com or username' },
         password: { label: 'Password', type: 'password' },
       },
       async authorize(
-        credentials: Record<"email" | "password", string> | undefined
+        credentials: Record<"identifier" | "password", string> | undefined
       ): Promise<{ id: string; email: string; username: string; isVerified: boolean } | null> {
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error('Email and password are required');
+        if (!credentials?.identifier || !credentials?.password) {
+          throw new Error('Email/Username and password are required');
         }
+
         try {
-          const user = await prisma.user.findUnique({
-            where: { email: credentials.email ,
-             },
-            
+          const user = await prisma.user.findFirst({
+            where: {
+              OR: [
+                { email: credentials.identifier },
+                { username: credentials.identifier }
+              ]
+            },
           });
 
           if (!user) {
@@ -38,7 +42,12 @@ export const authOptions: NextAuthOptions = {
             throw new Error('Incorrect password');
           }
 
-          return user;
+          return {
+            id: user.id,
+            email: user.email,
+            username: user.username,
+            isVerified: user.isVerified,
+          };
         } catch (error: unknown) {
           console.error('Authorization Error:', error);
           throw new Error('An error occurred while logging in');
@@ -60,7 +69,6 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.id;
         session.user.isVerified = token.isVerified;
         session.user.username = token.username;
-        
       }
       return session;
     },
