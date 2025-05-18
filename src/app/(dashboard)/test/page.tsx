@@ -351,7 +351,7 @@ useEffect(() => {
           invoiceNo: newInvoice.invoiceNo,
           date: newInvoice.invoiceDate,
           // customerID: newCustomer.id,
-          grandTotal: formData.Grandtotal,
+          grandTotal: formData.SuperTotal,
           paidAmount: formData.paidAmount,
           balanceDue: response.data.balanceDue,
           paymentStatus:response.data.paymentStatus,

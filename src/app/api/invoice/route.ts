@@ -166,7 +166,6 @@ return new NextResponse(buffer, {
   }
 // ✅ POST API - Create Customer and Invoice
 
-
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -191,7 +190,6 @@ export async function POST(req: Request) {
     const parsedPreviousDue = parseFloat(previous);
     const parsedPaidAmount = parseFloat(paidAmount);
 
-    // Validate input
     if (
       !customerName ||
       !mobileNo ||
@@ -199,21 +197,23 @@ export async function POST(req: Request) {
       isNaN(parsedPreviousDue) ||
       isNaN(parsedPaidAmount)
     ) {
-      return NextResponse.json({ message: 'Missing required fields or invalid format' }, { status: 400 });
+      return NextResponse.json(
+        { message: 'Missing required fields or invalid format' },
+        { status: 400 }
+      );
     }
 
     const username = session.user.username;
-    const isAnonymous = customerName === "NA" && mobileNo === "0000000000";
+    const isAnonymous = customerName === 'NA' && mobileNo === '0000000000';
 
     let customer = null;
 
     if (isAnonymous) {
-      // ✅ Use shared "Anonymous" customer for all anonymous invoices
       customer = await prisma.customer.findFirst({
         where: {
           username,
-          customerName: "NA",
-          mobileNo: "0000000000",
+          customerName: 'NA',
+          mobileNo: '0000000000',
         },
       });
 
@@ -221,23 +221,18 @@ export async function POST(req: Request) {
         customer = await prisma.customer.create({
           data: {
             username,
-            customerName: "NA",
-            mobileNo: "0000000000",
-            address: "",
+            customerName: 'NA',
+            mobileNo: '0000000000',
+            address: '',
             balance: 0,
           },
         });
       }
     } else {
-      // ✅ Regular customer lookup/creation
       customer = await prisma.customer.findFirst({
         where: {
-          AND: [
-            { username },
-            { customerName },
-            { mobileNo }
-          ]
-        }
+          AND: [{ username }, { customerName }, { mobileNo }],
+        },
       });
 
       if (!customer) {
@@ -248,21 +243,52 @@ export async function POST(req: Request) {
             mobileNo,
             address: address || '',
             balance: 0,
-          }
+          },
         });
       }
     }
 
-    // ✅ Calculate balance and status
+    // Balance calculation
     let balanceDue = SuperTotal - parsedPaidAmount;
     const paymentStatus = balanceDue <= 0 ? 'paid' : 'due';
     if (balanceDue < 0) balanceDue = 0;
 
+    const invoiceUpdates = [];
+
+    // If SuperTotal is fully paid and customer is not anonymous, update previous due invoices
+const isFullyPaid = parsedPaidAmount >= SuperTotal;
+
+    if (isFullyPaid && !isAnonymous) {
+      const unpaidInvoices = await prisma.invoice.findMany({
+        where: {
+          customerId: customer.id,
+          balanceDue: { gt: 0 },
+        },
+        orderBy: {
+          invoiceDate: 'asc',
+        },
+      });
+
+      for (const oldInvoice of unpaidInvoices) {
+        invoiceUpdates.push(
+          prisma.invoice.update({
+            where: { id: oldInvoice.id },
+            data: {
+              paidAmount: oldInvoice.totalAmount + oldInvoice.previousDue,
+              balanceDue: 0,
+              paymentStatus: 'paid',
+            },
+          })
+        );
+      }
+    }
+
+    // Run all DB operations in a single transaction
     const [newInvoice] = await prisma.$transaction([
       prisma.invoice.create({
         data: {
           username,
-          customerId: customer.id, // always exists now
+          customerId: customer.id,
           customerName,
           invoiceNo: `INV-${Date.now()}-${uuidv4().split('-')[0]}`,
           totalAmount: parsedGrandtotal,
@@ -279,6 +305,8 @@ export async function POST(req: Request) {
         where: { id: customer.id },
         data: { balance: balanceDue },
       }),
+
+      ...invoiceUpdates, // Update any old invoices that were cleared
     ]);
 
     return NextResponse.json({
@@ -293,7 +321,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
   }
 }
-
   
 export async function PUT(request: Request) {
   try {

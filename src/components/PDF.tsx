@@ -212,7 +212,7 @@ const InvoicePDF = ({
 
         <View style={styles.totals}>
           <Text style={{ fontWeight: 'bold', fontSize: pageSize === 'A4' ? 12 : 10 }}>
-            Subtotal: ₹{(Grandtotal - gstTotal).toFixed(2)}
+            Subtotal: ₹{(Grandtotal - (gstTotal+previousBalance) ).toFixed(2)}
           </Text>
           <Text style={{ fontWeight: 'bold', fontSize: pageSize === 'A4' ? 12 : 10 }}>GST: ₹{gstTotal.toFixed(2)}</Text>
           <Text>Previous Balance: ₹{previousBalance.toFixed(2)}</Text>
