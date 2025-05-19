@@ -188,7 +188,7 @@ export async function POST(req: Request) {
 
     const parsedGrandtotal = parseFloat(Grandtotal);
     const parsedPreviousDue = parseFloat(previous);
-    const parsedPaidAmount = parseFloat(paidAmount);
+    let parsedPaidAmount = parseFloat(paidAmount); // Will reduce this progressively
 
     if (
       !customerName ||
@@ -248,17 +248,10 @@ export async function POST(req: Request) {
       }
     }
 
-    // Balance calculation
-    let balanceDue = SuperTotal - parsedPaidAmount;
-    const paymentStatus = balanceDue <= 0 ? 'paid' : 'due';
-    if (balanceDue < 0) balanceDue = 0;
-
     const invoiceUpdates = [];
 
-    // If SuperTotal is fully paid and customer is not anonymous, update previous due invoices
-const isFullyPaid = parsedPaidAmount >= SuperTotal;
-
-    if (isFullyPaid && !isAnonymous) {
+    // Apply paidAmount to previous unpaid invoices in FIFO order
+    if (!isAnonymous && parsedPaidAmount > 0) {
       const unpaidInvoices = await prisma.invoice.findMany({
         where: {
           customerId: customer.id,
@@ -270,21 +263,47 @@ const isFullyPaid = parsedPaidAmount >= SuperTotal;
       });
 
       for (const oldInvoice of unpaidInvoices) {
-        invoiceUpdates.push(
-          prisma.invoice.update({
-            where: { id: oldInvoice.id },
-            data: {
-              paidAmount: oldInvoice.totalAmount + oldInvoice.previousDue,
-              balanceDue: 0,
-              paymentStatus: 'paid',
-            },
-          })
-        );
+        if (parsedPaidAmount <= 0) break;
+
+        const due = oldInvoice.balanceDue;
+
+        if (parsedPaidAmount >= due) {
+          // Fully pay this invoice
+          invoiceUpdates.push(
+            prisma.invoice.update({
+              where: { id: oldInvoice.id },
+              data: {
+                paidAmount: oldInvoice.paidAmount + due,
+                balanceDue: 0,
+                paymentStatus: 'paid',
+              },
+            })
+          );
+          parsedPaidAmount -= due;
+        } else {
+          // Partially pay this invoice
+          invoiceUpdates.push(
+            prisma.invoice.update({
+              where: { id: oldInvoice.id },
+              data: {
+                paidAmount: oldInvoice.paidAmount + parsedPaidAmount,
+                balanceDue: due - parsedPaidAmount,
+                paymentStatus: 'due',
+              },
+            })
+          );
+          parsedPaidAmount = 0;
+        }
       }
     }
 
-    // Run all DB operations in a single transaction
-    const [newInvoice] = await prisma.$transaction([
+    // Now calculate the balance for the current invoice based on remaining paidAmount
+    let balanceDue = SuperTotal - paidAmount;
+    if (balanceDue < 0) balanceDue = 0;
+    const paymentStatus = balanceDue <= 0 ? 'paid' : 'due';
+
+    // Build transaction
+    const transactionOps = [
       prisma.invoice.create({
         data: {
           username,
@@ -293,15 +312,16 @@ const isFullyPaid = parsedPaidAmount >= SuperTotal;
           invoiceNo: `INV-${Date.now()}-${uuidv4().split('-')[0]}`,
           totalAmount: parsedGrandtotal,
           previousDue: parsedPreviousDue,
-          paidAmount: parsedPaidAmount,
+          paidAmount: paidAmount,
           balanceDue,
           paymentStatus,
           supertotal: SuperTotal,
           refund: Refund,
         },
       }),
-         
-     ...(!isAnonymous
+
+      // Only update customer balance if not anonymous
+      ...(!isAnonymous
         ? [
             prisma.customer.update({
               where: { id: customer.id },
@@ -309,9 +329,12 @@ const isFullyPaid = parsedPaidAmount >= SuperTotal;
             }),
           ]
         : []),
-      ...invoiceUpdates, // Update any old invoices that were cleared
-    ]);
-  
+
+      ...invoiceUpdates,
+    ];
+
+    const [newInvoice] = await prisma.$transaction(transactionOps);
+
     return NextResponse.json({
       message: 'Invoice created successfully',
       customer,
@@ -324,7 +347,6 @@ const isFullyPaid = parsedPaidAmount >= SuperTotal;
     return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
   }
 }
-  
 export async function PUT(request: Request) {
   try {
     const body = await request.json();
