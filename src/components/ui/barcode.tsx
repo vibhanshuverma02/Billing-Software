@@ -23,7 +23,7 @@ export const fetchStockItemFromBarcode = async (
       hsn: raw.hsn,
       rate: raw.rate,
       quantity: 1,
-      gstRate: 12,
+      gstRate: 5,
     };
   } catch (err) {
     console.error("Barcode fetch failed", err);

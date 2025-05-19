@@ -1,8 +1,132 @@
 "use client";
-import { Page, Text, View, Document, StyleSheet, Font, Image } from '@react-pdf/renderer';
+import {
+  Page,
+  Text,
+  View,
+  Document,
+  StyleSheet,
+  Font,
+  Image,
+} from "@react-pdf/renderer";
+
+// Register fonts
+Font.register({ family: "NotoSans", src: "/font/NotoSans-Regular.ttf" });
+Font.register({
+  family: "NotoSansDevanagari",
+  src: "/font/NotoSansDevanagari-Regular.ttf",
+});
+
+// Dynamic styles based on pageSize
+const getStyles = (pageSize: "A4" | "A5") =>
+  StyleSheet.create({
+  page: {
+  fontFamily: "NotoSans",
+  fontSize: pageSize === "A4" ? 8 : 7,
+  padding: 0,
+  flexDirection: "column",
+  justifyContent: "flex-start",
+  height: "100%",
+},
+
+outerWrapper: {
+  border: "1px solid black",
+  padding: pageSize === "A4" ? 16 : 10,
+  margin: pageSize === "A4" ? 20 : 10, // <== this keeps border inside page edge
+  height: "95%",
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "space-between",
+  boxSizing: "border-box",
+},
+
+
+
+    content: {
+      flexGrow: 1,
+    },
+    header: {
+      textAlign: "center",
+      marginBottom: 6,
+      paddingVertical: 4,
+    },
+    shopName: {
+      fontSize: pageSize === "A4" ? 14 : 12,
+      fontWeight: "bold",
+    },
+    shopInfo: {
+      fontSize: pageSize === "A4" ? 8 : 7,
+      marginTop: 2,
+    },
+    title: {
+      textAlign: "center",
+      fontSize: pageSize === "A4" ? 10 : 9,
+      fontWeight: "bold",
+      marginTop: 6,
+      marginBottom: 6,
+      textDecoration: "underline",
+    },
+    row: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      marginBottom: 2,
+    },
+    label: {
+      fontWeight: "bold",
+    },
+    itemHeader: {
+      flexDirection: "row",
+      marginTop: 10,
+      marginBottom: 4,
+      fontWeight: "bold",
+      borderBottom: "1px solid black",
+      borderTop: "1px solid black",
+      paddingVertical: 2,
+    },
+    itemRow: {
+      flexDirection: "row",
+      paddingVertical: 2,
+    },
+    totals: {
+      flexDirection: "row",
+      justifyContent: "flex-end",
+      marginTop: 10,
+    },
+    totalsRight: {
+      width: "50%",
+      fontSize: pageSize === "A4" ? 8 : 7,
+      lineHeight: 1.4,
+      padding: 6,
+      border: "1px solid black",
+    },
+    bilingualText: {
+      fontFamily: "NotoSansDevanagari",
+      fontSize: pageSize === "A4" ? 7 : 6,
+      textAlign: "center",
+      marginTop: 3,
+      lineHeight: 1.5,
+    },
+    footer: {
+      textAlign: "center",
+      fontSize: pageSize === "A4" ? 7 : 6,
+      paddingTop: 4,
+      marginBottom:20,
+    },
+  });
+
+// Helper for column layout
+const col = (
+  width: string,
+  pageSize: "A4" | "A5",
+  align: "left" | "center" | "right" = "left"
+) => ({
+  width,
+  fontSize: pageSize === "A4" ? 8 : 7,
+  textAlign: align,
+  paddingHorizontal: 2,
+});
 
 interface InvoicePDFProps {
-  pageSize: 'A4' | 'A5';
+  pageSize: "A4" | "A5";
   invoiceNo: string;
   date: string;
   customerName: string;
@@ -23,199 +147,212 @@ interface InvoicePDFProps {
   paymentStatus: string | null;
 }
 
-Font.register({
-  family: 'NotoSans',
-  src: '/font/NotoSans-Regular.ttf',
-});
-
-Font.register({
-  family: 'NotoSansDevanagari',
-  src: '/font/NotoSansDevanagari-Regular.ttf',
-});
-
-const getStyles = (pageSize: 'A4' | 'A5') =>
-  StyleSheet.create({
-    page: {
-      fontFamily: 'NotoSans',
-      fontSize: 8,
-      padding: 16,
-      display: 'flex',
-      flexDirection: 'column',
-      height: '100%',
-    },
-    header: {
-      textAlign: 'center',
-      marginBottom: 6,
-    },
-    title: {
-      fontSize: 12,
-      fontWeight: 'bold',
-      textAlign: 'center',
-      marginVertical: 4,
-    },
-    section: {
-      marginVertical: 4,
-      lineHeight: 1.3,
-    },
-    user: {
-      textAlign: 'left',
-      fontSize: 7,
-      color: '#555',
-    },
-    billTo: {
-      fontSize: 6,
-      fontWeight: 'bold',
-    },
-    paymentStatus: {
-      fontSize: 6,
-      backgroundColor: '#f2f2f2',
-      padding: 2,
-      borderRadius: 1,
-      alignSelf: 'flex-end',
-      marginBottom: 4,
-    },
-    table: {
-      display: 'flex',
-      flexDirection: 'column',
-      width: '100%',
-      borderStyle: 'solid',
-      borderWidth: 1,
-      marginTop: 6,
-    },
-    tableRow: {
-      flexDirection: 'row',
-    },
-    tableHeader: {
-      backgroundColor: '#f2f2f2',
-      fontWeight: 'bold',
-    },
-    tableCol: {
-      width: '20%',
-      padding: 3,
-      border: '1px solid #000',
-      fontSize: 7,
-      textAlign: 'center',
-    },
-    totals: {
-      textAlign: 'right',
-      marginTop: 6,
-    },
-    footerContainer: {
-      marginTop: 'auto',
-      paddingTop: 6,
-    },
-    footer: {
-      textAlign: 'center',
-      fontSize: 7,
-      color: '#555',
-      marginTop: 4,
-    },
-    bilingualText: {
-      fontFamily: 'NotoSansDevanagari',
-      fontSize: 7,
-      textAlign: 'center',
-      lineHeight: 1.5,
-    },
-  });
-
 const InvoicePDF = ({
   pageSize,
   invoiceNo,
   date,
   customerName,
   mobileNo,
-  address,
   items,
   Grandtotal,
+  gstTotal,
+  paidAmount,
+  balanceDue,
   paymentStatus,
 }: InvoicePDFProps) => {
   const styles = getStyles(pageSize);
 
   return (
     <Document>
-      <Page size={pageSize} style={styles.page}>
-        <Image
-          src="/images/final2-Photoroom.png"
-          style={{ width: 60, height: 40, alignSelf: 'center', marginBottom: 6 }}
-        />
-
-        <View style={styles.header}>
-          <Text style={{ fontWeight: 'bold', fontSize: 12 }}>KUKREJA SAREE CENTER</Text>
-          <Text style={styles.bilingualText}>(सरदार जी )</Text>
-          <Text style={{ fontWeight: 'bold', fontSize: 8 }}>GST: 05ASTPK6699N1ZJ</Text>
-          <Text style={{ fontWeight: 'bold', fontSize: 8 }}>Address: Arya Samaj road B.T. Ganj Roorkee</Text>
-          <Text style={{ fontWeight: 'bold', fontSize: 8 }}>Contact: 8439751861</Text>
-        </View>
-
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-          <View>
-            <Text>Invoice No: {invoiceNo}</Text>
-            <Text>Date: {new Date(date).toLocaleString()}</Text>
-          </View>
-          {paymentStatus && (
-            <Text style={styles.paymentStatus}>Payment Status: {paymentStatus}</Text>
-          )}
-        </View>
-
-        <Text style={styles.title}>INVOICE</Text>
-
-        {!(customerName === 'NA' && mobileNo === '0000000000') && (
-          <View style={styles.section}>
-            <Text style={styles.billTo}>Bill To:</Text>
-            <Text>Customer: {customerName}</Text>
-            <Text>Address: {address}</Text>
-            <Text>Contact: {mobileNo}</Text>
-          </View>
-        )}
-
-    
-
-
-        <View style={styles.table}>
-          <View style={[styles.tableRow, styles.tableHeader]}>
-            <Text style={styles.tableCol}>Product</Text>
-            <Text style={styles.tableCol}>Qty</Text>
-            <Text style={styles.tableCol}>Rate</Text>
-            <Text style={styles.tableCol}>GST %</Text>
-            <Text style={styles.tableCol}>Total</Text>
-          </View>
-
-          {items.map((item, index) => (
-            <View key={index} style={styles.tableRow}>
-              <Text style={styles.tableCol}>{item.itemName}</Text>
-              <Text style={styles.tableCol}>{item.quantity}</Text>
-              <Text style={styles.tableCol}>₹{item.rate.toFixed(2)}</Text>
-              <Text style={styles.tableCol}>{item.gstRate}%</Text>
-              <Text style={styles.tableCol}>
-                ₹{(item.rate * item.quantity * (1 + item.gstRate / 100)).toFixed(2)}
+<Page size={pageSize} style={styles.page }>
+      
+         <View style={styles.outerWrapper}>
+              <View style={styles.content}>
+            {/* Header */}
+            <View style={styles.header}>
+              <Image
+                src="/images/final2-Photoroom.png"
+                style={{
+                  width: pageSize === "A4" ? 80 : 60,
+                  height: pageSize === "A4" ? 55 : 40,
+                  alignSelf: "center",
+                  marginBottom: pageSize === "A4" ? 10 : 5,
+                }}
+              />
+              <Text style={{ fontSize: 7 }}>GSTIN: 05ASTPK6699N1ZJ</Text>
+              <Text style={styles.title}>TAX INVOICE</Text>
+              <Text style={styles.shopName}>KUKREJA SAREE CENTER</Text>
+              <Text style={styles.bilingualText}>(सरदार जी )</Text>
+              <Text style={styles.shopInfo}>
+                Arya Samaj road B.T. Ganj Roorkee
+              </Text>
+              <Text style={styles.shopInfo}>
+                Mob.No.: 8439751861 | Email:
               </Text>
             </View>
-          ))}
-        </View>
 
-        <View style={styles.totals}>
-          <Text style={{ fontWeight: 'bold', fontSize: 10 }}>
-            Grand Total: ₹{Grandtotal.toFixed(2)}
-          </Text>
-        </View>
+            {/* Invoice Info */}
+            <View style={[styles.row, { marginTop: 6 }]}>
+              {customerName !== "NA" && (
+                <Text>
+                  <Text style={styles.label}>Party:</Text> {customerName}
+                </Text>
+              )}
+              <Text>
+                <Text style={styles.label}>Bill No.:</Text> {invoiceNo}
+              </Text>
+            </View>
 
-        <View style={styles.footerContainer}>
-          <Text style={styles.footer}>Thank you visit again!</Text>
+            <View style={styles.row}>
+              {mobileNo !== "0000000000" && (
+                <Text>
+                  <Text style={styles.label}>Mobile:</Text> {mobileNo}
+                </Text>
+              )}
+              <Text>
+                <Text style={styles.label}>Bill Date:</Text>{" "}
+                {new Date(date).toLocaleDateString("en-IN")}
+              </Text>
+              <Text>
+                <Text style={styles.label}>paymentStatus:</Text>{" "}
+                {paymentStatus}
+              </Text>
+            </View>
+
+            {/* Items Table */}
+            <View style={{ marginTop: 8 }}>
+              <View style={styles.itemHeader}>
+                <Text style={col("6%", pageSize, "center")}>S.N.</Text>
+                <Text style={col("38%", pageSize)}>Description</Text>
+                <Text style={col("10%", pageSize, "center")}>Qty</Text>
+                <Text style={col("14%", pageSize, "right")}>Rate</Text>
+                <Text style={col("10%", pageSize, "center")}>%</Text>
+                <Text style={col("22%", pageSize, "right")}>Amount</Text>
+              </View>
+
+              {items.map((item, index) => (
+                <View key={index} style={styles.itemRow}>
+                  <Text style={col("6%", pageSize, "center")}>{index + 1}</Text>
+                  <Text style={col("38%", pageSize)}>{item.itemName}</Text>
+                  <Text style={col("10%", pageSize, "center")}>
+                    {item.quantity}
+                  </Text>
+                  <Text style={col("14%", pageSize, "right")}>
+                    ₹{item.rate.toFixed(2)}
+                  </Text>
+                  <Text style={col("10%", pageSize, "center")}>
+                    {item.gstRate}%
+                  </Text>
+                  <Text style={col("22%", pageSize, "right")}>
+                    ₹{(item.rate * item.quantity * (1 + item.gstRate / 100)).toFixed(2)}
+                  </Text>
+                </View>
+              ))}
+
+              <View
+                style={{
+                  flexDirection: "row",
+                  borderTop: "1px solid black",
+                  backgroundColor: "#f9f9f9",
+                  paddingVertical: 4,
+                }}
+              >
+                <Text style={col("44%", pageSize, "right")}>Total</Text>
+                <Text style={col("10%", pageSize, "center")}>
+                  {items.reduce((sum, item) => sum + item.quantity, 0)}
+                </Text>
+                <Text style={col("46%", pageSize)} />
+              </View>
+            </View>
+
+            {/* Totals */}
+            <View style={styles.totals}>
+              <View style={styles.totalsRight}>
+                <View
+                  style={{ flexDirection: "row", justifyContent: "space-between" }}
+                >
+                  <Text>CGST:</Text>
+                  <Text>₹{(gstTotal / 2).toFixed(2)}</Text>
+                </View>
+                <View
+                  style={{ flexDirection: "row", justifyContent: "space-between" }}
+                >
+                  <Text>SGST:</Text>
+                  <Text>₹{(gstTotal / 2).toFixed(2)}</Text>
+                </View>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    marginBottom: 8,
+                    marginTop: 4,
+                    borderTop: "0.5px dashed #aaa",
+                    paddingTop: 4,
+                  }}
+                >
+                  <Text style={{ fontWeight: "bold" }}>Total Amt.:</Text>
+                  <Text style={{ fontWeight: "bold" }}>
+                    ₹{Grandtotal.toFixed(2)}
+                  </Text>
+                </View>
+
+                {customerName !== "NA" && mobileNo !== "0000000000" && (
+                  <>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <Text>Paid Amt.:</Text>
+                      <Text>₹{paidAmount.toFixed(2)}</Text>
+                    </View>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <Text>Return Amt.:</Text>
+                      <Text>₹{Math.max(0, paidAmount - Grandtotal).toFixed(2)}</Text>
+                    </View>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        justifyContent: "space-between",
+                        marginTop: 4,
+                      }}
+                    >
+                      <Text style={{ fontWeight: "bold" }}>Balance:</Text>
+                      <Text style={{ fontWeight: "bold" }}>
+                        ₹{balanceDue !== null ? balanceDue.toFixed(2) : "0.00"}
+                      </Text>
+                    </View>
+                  </>
+                )}
+              </View>
+            </View>
+              </View>
+          
+
+        {/* Footer always at the bottom */}
+        <View style={styles.footer}>
+          <Text>Thank you visit again!</Text>
           <Text style={styles.bilingualText}>
             फॉल की सभी साड़ियाँ और लहंगे के लिए कृपया बिल साथ लाएँ, क्योंकि बिना बिल के सामान नहीं मिलेगा।
           </Text>
-          <Text style={styles.footer}>No Claim No Exchange</Text>
-          <Text style={styles.footer}>For any queries, please contact us at 8439751861</Text>
-          <Text style={styles.footer}>
+          <Text>No Claim No Exchange</Text>
+          <Text>For any queries, please contact us at 8439751861</Text>
+          <Text>
             © kukreja saree center Arya Samaj road B.T. Ganj Roorkee 247667. All rights reserved.
           </Text>
         </View>
+         </View>
+  
       </Page>
     </Document>
+ 
   );
 };
 
 export default InvoicePDF;
-
-
-

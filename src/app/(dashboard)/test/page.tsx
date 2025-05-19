@@ -67,8 +67,10 @@ interface ToggleLoadingAction {
   type: "TOGGLE_LOADING";
   payload: boolean;
 }
-
-type Action = SetNameAction | SetMobileAction | SetMessageAction | ToggleLoadingAction;
+interface ResetFormAction {
+  type: "RESET_FORM";
+}
+type Action = SetNameAction | SetMobileAction | SetMessageAction | ToggleLoadingAction | ResetFormAction;;
 const initialState = {
   customername: "",
   customermobileNo: "",
@@ -88,6 +90,11 @@ const reducer = (state:State, action:Action) => {
       return { ...state, customerdetialsMessage: action.payload };
     case "TOGGLE_LOADING":
       return { ...state, isCheckingCustomer: action.payload };
+    case "RESET_FORM":
+  return {
+    ...initialState, // make sure initialState is correctly defined
+  };
+  
     default:
       return state;
   }
@@ -307,13 +314,37 @@ useEffect(() => {
   
 
   // // ✅ Clear Form
-  // const clearForm = () => {
-  //   form.reset();
-  //   form.setValue("Grandtotal", 0)
-  //   setGstTotal(0);
-  //   setBalanceDue(null);
-  //   setPaymentStatus(null);
-  // };
+ const clearForm = () => {
+  form.reset({
+    username: username || " ",
+    customerName: "",
+    mobileNo: "",
+    address: "",
+    paidAmount: 0,
+    previous: 0,
+    Grandtotal: 0,
+    SuperTotal: 0,
+    Refund: 0,
+    items: [],
+  });
+
+  setInvoiceNo("");
+  setDate("");
+  setIsAnonymous(false);
+  setGstTotal(0);
+  setBalanceDue(null);
+  setPaymentStatus(null);
+  setPaidamount(0);
+  setRefund(0);
+  setPrevious(0);
+  setSelectedStock(null);
+  setQuantity(1);
+  setGstRate(12);
+  setCustomerID(null);
+
+  // Clear reducer state
+  dispatch({ type: "RESET_FORM" }); // 👈 Create this case in your reducer to reset `customername`, `customermobileNo`, etc.
+};
 
   
 
@@ -340,9 +371,10 @@ useEffect(() => {
       setCustomerID(response.data.customer.id);
       console.log(customerID)
       console.log(response.data.customer.id);
+      if(!isAnonymous){
       setBalanceDue(response.data.balanceDue);
       setPaymentStatus(response.data.paymentStatus);
-
+      }
 
       toast.success("Invoice generated successfully!");
       setTimeout(() => {
@@ -425,24 +457,35 @@ useEffect(() => {
         paymentStatus={paymentStatus}
       />
     ).toBlob();
+ const fileName = `customername_${state.customername}.pdf`;
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (isMobile) {
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank");
+    } else {
+      saveAs(blob, fileName);
+    }
 
-    const fileName = `customername_${state.customername}.pdf`;
-    saveAs(blob, fileName);
-    const base64 = await blob.arrayBuffer().then(buf => btoa(String.fromCharCode(...new Uint8Array(buf)))
-  );
+    const base64 = await blob.arrayBuffer().then((buf) => {
+      let binary = "";
+      const bytes = new Uint8Array(buf);
+      for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      return btoa(binary);
+    });
 
-    // ✅ Update only the PDF path in the database (no new invoice)
-    // const pdfPath = `C:/Users/Client/Downloads/${fileName}`;
-    console.log(invoiceId)
-    await axios.put("/api/invoice", { invoiceId: invoiceId, pdfBufferBase64: base64 });
+    await axios.put("/api/invoice", {
+      invoiceId: invoiceId,
+      pdfBufferBase64: base64,
+    });
 
     alert("PDF generated and path saved!");
   } catch (error) {
     console.error("Error generating PDF:", error);
-    alert("Failed to generate PDF.");
+    alert("Failed to generate PDF: " + (error as Error).message);
   }
 };
-
   return (
   <div className="flex items-center justify-center min-h-screen px-4">
     <Card className="w-full max-w-4xl max-h-screen overflow-y-auto shadow-md rounded-lg p-6">
@@ -463,6 +506,8 @@ useEffect(() => {
                 <FormLabel>Order Date</FormLabel>
                 <Input placeholder="Loading..." value={date || ""} readOnly className="w-full" />
               </FormItem>
+              <Button type="button" onClick={clearForm}>  new bill</Button>
+
             </div>
 <div className="flex items-center space-x-2 mb-4">
   <input
@@ -483,7 +528,7 @@ useEffect(() => {
     className="h-5 w-5"
   />
   <label htmlFor="anonymousToggle" className="text-sm font-medium text-gray-700">
-    genrate bill for non saree and lehenge customers
+    generate bill for non saree and lehenge customers
   </label>
 </div>
 
@@ -703,13 +748,14 @@ useEffect(() => {
 
                 <div>
                   <p className="font-medium text-red-600">Balance Due:</p>
-                  <Input type="number" value={balanceDue ?? 0} readOnly className="bg-gray-100 w-full" />
+                  <Input type="number" value={balanceDue ?? 0}    disabled={isAnonymous} readOnly className="bg-gray-100 w-full" />
                 </div>
 
                 <div>
                   <FormLabel>Payment Status</FormLabel>
                   <Input
                     value={paymentStatus || "N/A"}
+                      disabled={isAnonymous}
                     readOnly
                     className="bg-gray-100 w-full"
                   />

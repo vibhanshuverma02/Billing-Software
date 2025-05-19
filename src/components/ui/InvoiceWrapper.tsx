@@ -23,7 +23,7 @@ interface InvoicePDFWrapperProps {
   paymentStatus: string | null;
 }
 
-const ITEM_THRESHOLD = 15;
+const ITEM_THRESHOLD = 12;
 
 const InvoicePDFWrapper = (props: InvoicePDFWrapperProps) => {
   const {
