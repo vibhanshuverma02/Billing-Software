@@ -9,15 +9,15 @@ interface Props {
 }
 
 export const BarcodePDF = ({ barcodeBase64, count }: Props) => {
-  const copies = Array.from({ length: count });
+  const copies = Array.from({ length: Math.min(count, 12) }); // Max 12 per page
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        <View style={styles.imageGrid}>
+        <View style={styles.grid}>
           {copies.map((_, idx) => (
-            <View key={idx} style={styles.imageWrapper}>
-              <Image src={barcodeBase64} style={styles.image} />
+            <View key={idx} style={styles.cell}>
+              <Image src={barcodeBase64} style={styles.barcode} />
             </View>
           ))}
         </View>
@@ -26,22 +26,27 @@ export const BarcodePDF = ({ barcodeBase64, count }: Props) => {
   );
 };
 
+const mm = (value: number) => value * 2.835;
+
 const styles = StyleSheet.create({
   page: {
-    padding: 24,
-  },
-  imageGrid: {
+    padding: 0, // No margin
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'flex-start',
   },
-  imageWrapper: {
-    marginRight: 10,
-    marginBottom: 20,
-    alignItems: 'center',
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
   },
-  image: {
-    width: 200,
-    height: 80,
+  cell: {
+    width: mm(100),     // 100mm width
+    height: mm(44.15),  // 44.15mm height
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  barcode: {
+    width: mm(100),
+    height: mm(44.15),
   },
 });
