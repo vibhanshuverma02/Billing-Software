@@ -681,13 +681,14 @@ useEffect(() => {
                 <p>Sub Total: ₹{fields.reduce((sum, item) => sum + item.rate * item.quantity, 0)}</p>
                 <p>GST: ₹{gstTotal}</p>
                 <p>Total: ₹{form.getValues("Grandtotal").toFixed(2)}</p>
-
+              
                 <div className="border p-3 rounded-lg">
                   <p className="font-semibold">Previous Balance: ₹{previous.toFixed(2)}</p>
                   <p className="font-semibold text-red-600">
                     GrandTotal: ₹{form.getValues("SuperTotal").toFixed(2)}
                   </p>
                 </div>
+                
 
                 <div>
                   <FormLabel>Paid Amount</FormLabel>

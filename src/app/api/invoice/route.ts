@@ -300,15 +300,18 @@ const isFullyPaid = parsedPaidAmount >= SuperTotal;
           refund: Refund,
         },
       }),
-
-      prisma.customer.update({
-        where: { id: customer.id },
-        data: { balance: balanceDue },
-      }),
-
+         
+     ...(!isAnonymous
+        ? [
+            prisma.customer.update({
+              where: { id: customer.id },
+              data: { balance: balanceDue },
+            }),
+          ]
+        : []),
       ...invoiceUpdates, // Update any old invoices that were cleared
     ]);
-
+  
     return NextResponse.json({
       message: 'Invoice created successfully',
       customer,
