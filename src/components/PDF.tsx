@@ -31,19 +31,22 @@ const getStyles = (pageSize: "A4" | "A5") =>
 outerWrapper: {
   border: "1px solid black",
   padding: pageSize === "A4" ? 16 : 10,
-  margin: pageSize === "A4" ? 20 : 10, // <== this keeps border inside page edge
-  height: "95%",
+  margin: pageSize === "A4" ? 36 : 20, // more margin for ad space
+   height: "92%",
   display: "flex",
   flexDirection: "column",
   justifyContent: "space-between",
   boxSizing: "border-box",
+  position: "relative",
 },
 
 
 
     content: {
-      flexGrow: 1,
-    },
+  flexGrow: 1,
+  
+},
+
     header: {
       textAlign: "center",
       marginBottom: 6,
@@ -105,12 +108,23 @@ outerWrapper: {
       marginTop: 3,
       lineHeight: 1.5,
     },
+  
     footer: {
       textAlign: "center",
       fontSize: pageSize === "A4" ? 7 : 6,
       paddingTop: 4,
       marginBottom:20,
     },
+    adFooter: {
+  position: "absolute",
+  bottom: 4, // distance from bottom
+  left: 0,
+  right: 0,
+  textAlign: "center",
+  fontSize: pageSize === "A4" ? 4 : 4,
+  color: "gray",
+},
+
   });
 
 // Helper for column layout
@@ -346,9 +360,13 @@ const InvoicePDF = ({
           <Text>
             © kukreja saree center Arya Samaj road B.T. Ganj Roorkee 247667. All rights reserved.
           </Text>
+      
         </View>
+ 
          </View>
-  
+<Text style={styles.adFooter}>
+      Need GST Billing Solution? Call now! 6398937356
+    </Text>
       </Page>
     </Document>
  
