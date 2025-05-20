@@ -197,6 +197,7 @@ const InvoicePDF = ({
                 <Text>
                   <Text style={styles.label}>Party:</Text> {customerName}
                 </Text>
+                
               )}
               <Text>
                 <Text style={styles.label}>Bill No.:</Text> {invoiceNo}
@@ -207,16 +208,15 @@ const InvoicePDF = ({
               {mobileNo !== "0000000000" && (
                 <Text>
                   <Text style={styles.label}>Mobile:</Text> {mobileNo}
-                </Text>
+                <Text style={styles.label}>paymentStatus:</Text>{" "}
+                {paymentStatus}
+              </Text>
               )}
               <Text>
                 <Text style={styles.label}>Bill Date:</Text>{" "}
                 {new Date(date).toLocaleDateString("en-IN")}
               </Text>
-              <Text>
-                <Text style={styles.label}>paymentStatus:</Text>{" "}
-                {paymentStatus}
-              </Text>
+             
             </View>
 
             {/* Items Table */}

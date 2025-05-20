@@ -8,29 +8,58 @@ interface Props {
   count: number;
 }
 
+// --- Constants ---
+const MM = (value: number) => value * 2.835; // mm to pt conversion
+
+const LABEL_WIDTH = 63.5;
+const LABEL_HEIGHT = 46.6;
+const COLUMNS = 3;
+const ROWS = 6;
+const HORIZONTAL_GAP = 2.05;
+const PAGE_MARGIN_LEFT_ = 6.5;
+const PAGE_MARGIN_Right_ = 7.1;
+const PAGE_MARGIN_TOP = 9;
+const PAGE_MARGIN_BOTTOM = 8;
+
+const LABELS_PER_PAGE = COLUMNS * ROWS;
+
+// --- Component ---
 export const BarcodePDF = ({ barcodeBase64, count }: Props) => {
-  const copies = Array.from({ length: Math.min(count, 12) }); // Max 12 per page
+  const labelsToRender = Array.from({ length: Math.min(count, LABELS_PER_PAGE) });
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
         <View style={styles.grid}>
-          {copies.map((_, idx) => (
-            <View key={idx} style={styles.cell}>
-              <Image src={barcodeBase64} style={styles.barcode} />
-            </View>
-          ))}
+          {labelsToRender.map((_, index) => {
+            const isLastColumn = (index + 1) % COLUMNS === 0;
+
+            return (
+              <View
+  key={index}
+  style={[
+    styles.cell,
+    isLastColumn ? {} : { marginRight: MM(HORIZONTAL_GAP) },
+  ]}
+>
+
+                <Image src={barcodeBase64} style={styles.barcode} />
+              </View>
+            );
+          })}
         </View>
       </Page>
     </Document>
   );
 };
 
-const mm = (value: number) => value * 2.835;
-
+// --- Styles ---
 const styles = StyleSheet.create({
   page: {
-    padding: 0, // No margin
+    paddingTop: MM(PAGE_MARGIN_TOP),
+    paddingBottom: MM(PAGE_MARGIN_BOTTOM),
+    paddingLeft: MM(PAGE_MARGIN_LEFT_),
+    paddingRight: MM(PAGE_MARGIN_Right_),
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'flex-start',
@@ -38,15 +67,17 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    width: MM(210 - ( PAGE_MARGIN_LEFT_+ PAGE_MARGIN_Right_)),
   },
   cell: {
-    width: mm(100),     // 100mm width
-    height: mm(44.15),  // 44.15mm height
+    width: MM(LABEL_WIDTH),
+    height: MM(LABEL_HEIGHT),
     alignItems: 'center',
     justifyContent: 'center',
+    border: '1px solid black', // <-- Bounding box added here
   },
   barcode: {
-    width: mm(100),
-    height: mm(44.15),
+    width: MM(60), // inner padding
+    height: MM(40),
   },
 });
