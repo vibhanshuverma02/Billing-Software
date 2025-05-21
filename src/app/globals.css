@@ -222,4 +222,59 @@ html {
   body {
     @apply bg-background text-foreground;
   }
+}@keyframes scaleUpToTop {
+  from {
+    transform: scale(0.9) translateY(0);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) translateY(-4vh); /* You can tweak -30vh for how high it moves */
+    opacity: 1;
+  }
+}
+
+.animate-scaleUpToTop {
+  animation: scaleUpToTop 0.8s ease-out forwards;
+}
+
+
+
+@keyframes blink {
+  0%, 50%, 100% {
+    opacity: 1;
+  }
+  25%, 75% {
+    opacity: 0;
+  }
+}
+
+.blinking {
+  animation: blink 1.5s infinite;
+}
+
+.typing-cursor {
+  display: inline-block;
+  margin-left: 2px;
+  width: 10px;
+  animation: blink 1s step-start infinite;
+  color: #facc15; /* amber-400 */
+}
+@keyframes interactiveSpin {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  50% {
+    transform: rotate(180deg) scale(1.2);
+  }
+  100% {
+    transform: rotate(360deg) scale(1);
+  }
+}
+
+.animate-interactiveSpin {
+  animation: interactiveSpin 1.5s ease-in-out infinite;
+}
+.hover-grow:hover {
+  transform: scale(1.25);
+  transition: transform 0.3s ease;
 }

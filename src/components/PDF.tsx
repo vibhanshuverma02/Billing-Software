@@ -32,7 +32,7 @@ outerWrapper: {
   border: "1px solid black",
   padding: pageSize === "A4" ? 16 : 10,
   margin: pageSize === "A4" ? 36 : 20, // more margin for ad space
-   height: "92%",
+   height: "96%",
   display: "flex",
   flexDirection: "column",
   justifyContent: "space-between",
@@ -115,15 +115,7 @@ outerWrapper: {
       paddingTop: 4,
       marginBottom:20,
     },
-    adFooter: {
-  position: "absolute",
-  bottom: 4, // distance from bottom
-  left: 0,
-  right: 0,
-  textAlign: "center",
-  fontSize: pageSize === "A4" ? 4 : 4,
-  color: "gray",
-},
+  
 
   });
 
@@ -222,10 +214,14 @@ const InvoicePDF = ({
               {mobileNo !== "0000000000" && (
                 <Text>
                   <Text style={styles.label}>Mobile:</Text> {mobileNo}
+              
+              </Text>
+              
+              )}
+              <Text>
                 <Text style={styles.label}>paymentStatus:</Text>{" "}
                 {paymentStatus}
-              </Text>
-              )}
+                   </Text>
               <Text>
                 <Text style={styles.label}>Bill Date:</Text>{" "}
                 {new Date(date).toLocaleDateString("en-IN")}
@@ -364,9 +360,7 @@ const InvoicePDF = ({
         </View>
  
          </View>
-<Text style={styles.adFooter}>
-      Need GST Billing Solution? Call now! 6398937356
-    </Text>
+
       </Page>
     </Document>
  

@@ -12,14 +12,14 @@ interface Props {
 const MM = (value: number) => value * 2.835; // mm to pt conversion
 
 const LABEL_WIDTH = 63.5;
-const LABEL_HEIGHT = 46.6;
+const LABEL_HEIGHT = 38.1;
 const COLUMNS = 3;
-const ROWS = 6;
+const ROWS = 7;
 const HORIZONTAL_GAP = 2.05;
 const PAGE_MARGIN_LEFT_ = 6.5;
-const PAGE_MARGIN_Right_ = 7.1;
-const PAGE_MARGIN_TOP = 9;
-const PAGE_MARGIN_BOTTOM = 8;
+const PAGE_MARGIN_Right_ = 7.5;
+const PAGE_MARGIN_TOP = 9.1;
+const PAGE_MARGIN_BOTTOM = 9.1;
 
 const LABELS_PER_PAGE = COLUMNS * ROWS;
 
@@ -74,10 +74,10 @@ const styles = StyleSheet.create({
     height: MM(LABEL_HEIGHT),
     alignItems: 'center',
     justifyContent: 'center',
-    border: '1px solid black', // <-- Bounding box added here
+    border: '0.5px solid black', // <-- Bounding box added here
   },
   barcode: {
-    width: MM(60), // inner padding
-    height: MM(40),
+    width: MM(63.1), // inner padding
+    height: MM( 38.1 ),
   },
 });

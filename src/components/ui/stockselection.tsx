@@ -54,7 +54,7 @@ const StockSelect: React.FC<StockSelectProps> = ({ onSelect }) => {
 
   return (
     <div className="space-y-2">
-      <Label>Select Item</Label>
+      <Label>Select Item through list</Label>
       <Select
         onValueChange={(id) => {
           const selectedItem = stocks.find((item) => item.id === id);

@@ -101,6 +101,7 @@ const reducer = (state:State, action:Action) => {
 };
 const Test = () => {
   const { data: session, status } = useSession();  // ✅ Fetch session
+    const [isOpen, setIsOpen] = useState(false);
  const [username, setUsername] = useState<string | null>(null);
  const [customerID, setCustomerID]=useState<string|null>(null);
   const [invoiceNo, setInvoiceNo] = useState<string>("");
@@ -278,11 +279,13 @@ useEffect(() => {
   const [quantity, setQuantity] = useState<number>(1);
   const [gstRate, setGstRate] = useState<number>(12);
   
-  // useEffect(() => {
-  //   const refund = paidamount - (form.getValues("SuperTotal") || 0);
-  //   form.setValue("Refund", refund);
-  // }, [paidamount, form]);
-  
+ useEffect(() => {
+    if (selectedStock) {
+      setIsOpen(true);
+    } else {
+      setIsOpen(false); // Optional: close if no selection
+    }
+  }, [selectedStock]);
 
   // ✅ Add Item to Invoice Table
   const addItem = (item?: StockItem) => {
@@ -487,29 +490,45 @@ useEffect(() => {
   }
 };
   return (
-  <div className="flex items-center justify-center min-h-screen px-4">
-    <Card className="w-full max-w-4xl max-h-screen overflow-y-auto shadow-md rounded-lg p-6">
-      <CardHeader className="text-center">
-        <h1 className="text-3xl md:text-4xl font-bold text-blue-600">Generate Invoice</h1>
-      </CardHeader>
+ < div className="flex items-start justify-center min-h-screen px-4 py-6">
+  <Card className="w-full max-w-full md:max-w-4xl max-h-screen overflow-y-auto shadow-md rounded-lg p-6">
+    <CardHeader className="text-center mb-6">
+      <h1 className="text-3xl md:text-4xl font-bold text-blue-600">Generate Invoice</h1>
+    </CardHeader>
 
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
-            {/* Invoice Info */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              <FormItem>
-                <FormLabel>Invoice No</FormLabel>
-                <Input placeholder="Loading..." value={invoiceNo || ""} readOnly className="w-full" />
-              </FormItem>
-              <FormItem>
-                <FormLabel>Order Date</FormLabel>
-                <Input placeholder="Loading..." value={date || ""} readOnly className="w-full" />
-              </FormItem>
-              <Button type="button" onClick={clearForm}>  new bill</Button>
+    <CardContent>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)}>
+          {/* Invoice Info */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <FormItem>
+              <FormLabel>Invoice No</FormLabel>
+              <Input
+                placeholder="Loading..."
+                value={invoiceNo || ""}
+                readOnly
+                className="w-full"
+              />
+            </FormItem>
 
-            </div>
-<div className="flex items-center space-x-2 mb-4">
+            <FormItem>
+              <FormLabel>Order Date</FormLabel>
+              <Input
+                placeholder="Loading..."
+                value={date || ""}
+                readOnly
+                className="w-full"
+              />
+            </FormItem>
+          </div>
+
+          <div className="flex justify-start md:justify-end">
+            <Button type="button" onClick={clearForm} className="px-4 py-2">
+              New Bill
+            </Button>
+          </div>
+            
+<div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 mb-4">
   <input
     type="checkbox"
     checked={isAnonymous}
@@ -525,258 +544,374 @@ useEffect(() => {
       }
     }}
     id="anonymousToggle"
-    className="h-5 w-5"
+    className="h-5 w-5 mt-1 sm:mt-0"
   />
-  <label htmlFor="anonymousToggle" className="text-sm font-medium text-gray-700">
+  <label
+    htmlFor="anonymousToggle"
+    className="text-sm font-medium text-gray-700 cursor-pointer"
+  >
     generate bill for non saree and lehenge customers
   </label>
 </div>
 
-            {/* Customer Info */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <Controller
-                name="customerName"
-                control={form.control}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Customer Name</FormLabel>
-                    <Input
-                      {...field}
-                      value={state.customername}
-                      onChange={(e) => dispatch({ type: "SET_NAME", payload: e.target.value })}
-                      disabled={isAnonymous}
-                      className="w-full"
-                    />
-                  </FormItem>
-                )}
-              />
 
-              <Controller
-                name="mobileNo"
-                control={form.control}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Contact Number</FormLabel>
-                    <Input
-                      {...field}
-                      value={state.customermobileNo}
-                      onChange={(e) => dispatch({ type: "SET_MOBILE", payload: e.target.value })}
-                      disabled={isAnonymous}
-                      className="w-full"
-                    />
-                  </FormItem>
-                )}
-              />
+{/* Customer Info */}
+<div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-8">
+  <Controller
+    name="customerName"
+    control={form.control}
+    render={({ field }) => (
+      <FormItem>
+        <FormLabel>Customer Name</FormLabel>
+        <Input
+          {...field}
+          value={state.customername}
+          onChange={(e) => dispatch({ type: "SET_NAME", payload: e.target.value })}
+          disabled={isAnonymous}
+          className="w-full"
+        />
+      </FormItem>
+    )}
+  />
 
-              <div className="col-span-3">
-                {state.isCheckingCustomer && <Loader2 className="animate-spin" />}
-                {!state.isCheckingCustomer && state.customerdetialsMessage && (
-                  <p
-                    className={`text-sm ${
-                      state.customerdetialsMessage.includes("New")
-                        ? "text-green-500"
-                        : "text-red-500"
-                    }`}
-                  >
-                    {state.customerdetialsMessage}
-                  </p>
-                )}
-              </div>
+  <Controller
+    name="mobileNo"
+    control={form.control}
+    render={({ field }) => (
+      <FormItem>
+        <FormLabel>Contact Number</FormLabel>
+        <Input
+          {...field}
+          value={state.customermobileNo}
+          onChange={(e) => dispatch({ type: "SET_MOBILE", payload: e.target.value })}
+          disabled={isAnonymous}
+          className="w-full"
+        />
+      </FormItem>
+    )}
+  />
 
-              <Controller
-                name="address"
-                control={form.control}
-                render={({ field }) => (
-                  <FormItem className="col-span-3">
-                    <FormLabel>Customer Address</FormLabel>
-                    <Textarea placeholder="Enter customer address" {...field} className="w-full" />
-                  </FormItem>
-                )}
-              />
-            </div>
+  {/* Status message, full width on all screens */}
+  <div className="col-span-1 md:col-span-2 flex items-center space-x-2">
+    {state.isCheckingCustomer && <Loader2 className="animate-spin" />}
+    {!state.isCheckingCustomer && state.customerdetialsMessage && (
+      <p
+        className={`text-sm ${
+          state.customerdetialsMessage.includes("New") ? "text-green-500" : "text-red-500"
+        }`}
+      >
+        {state.customerdetialsMessage}
+      </p>
+    )}
+  </div>
 
-            {/* Stock Selection */}
-            <div className="flex flex-col md:flex-row gap-4 items-center mb-6">
-              <div className="flex-1 space-y-4">
-                <ScannerPage onSelect={(item) => append(item)} />
-                <StockSelect onSelect={(stock) => setSelectedStock(stock)} />
-                <Input
-                  value={selectedStock ? selectedStock.itemName : ""}
-                  readOnly
-                  className="bg-gray-100 text-gray-800 w-full"
-                />
-                <p className="text-lg font-medium">
-                  Selected Product:{" "}
-                  <span className="text-blue-600">
-                    {selectedStock?.itemName || "No product selected"}
-                  </span>
-                </p>
-              </div>
+  <Controller
+    name="address"
+    control={form.control}
+    render={({ field }) => (
+      <FormItem className="col-span-1 md:col-span-2">
+        <FormLabel>Customer Address</FormLabel>
+        <Textarea placeholder="Enter customer address" {...field} className="w-full" />
+      </FormItem>
+    )}
+  />
+</div>
 
-              <FormItem className="w-full md:w-32">
-                <FormLabel>Quantity</FormLabel>
-                <Input
-                  type="number"
-                  value={quantity}
-                  min={0}
-                  onChange={(e) => setQuantity(Number(e.target.value))}
-                  className="w-full"
-                />
-              </FormItem>
+{/* Stock Selection */}
+<div className="flex flex-col gap-4 mb-6">
+  {/* Scanner and Stock Select stacked vertically */}
+ <div className="flex items-center space-x-4 mb-4">
+  <div className="flex-1">
+    <ScannerPage onSelect={(item) => append(item)} />
+  </div>
 
-              <FormItem className="w-full md:w-32">
-                <FormLabel>GST %</FormLabel>
-                <select
-                  value={gstRate}
-                  onChange={(e) => setGstRate(Number(e.target.value))}
-                  className="w-full rounded-md border-gray-300"
-                >
-                  {[0, 3, 5, 12, 18, 28].map((gst) => (
-                    <option key={gst} value={gst}>
-                      {gst}%
-                    </option>
-                  ))}
-                </select>
-              </FormItem>
+  <div className="px-2">
+    <span className="text-gray-500 font-semibold select-none block py-2">OR</span>
+  </div>
 
-             <Button type="button" onClick={() => addItem()} className="bg-blue-600 text-white">
-                Add Item
-              </Button>
+  <div className="flex-1 ml-6">
+    <StockSelect onSelect={(stock) => setSelectedStock(stock)} />
+  </div>
+</div>
 
-            </div>
+
+  {/* Collapsible Selected Product */}
+  <div
+    className="border rounded-md p-4 cursor-pointer select-none"
+    onClick={() => setIsOpen(!isOpen)}
+  >
+    {/* Header: always visible */}
+    <div className="flex justify-between items-center">
+      <p className="text-lg font-medium">
+        Selected Product:{" "}
+        <span className="text-blue-600">
+          {selectedStock?.itemName || "No product selected"}
+        </span>
+      </p>
+      <button
+        className="text-blue-600 font-bold"
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsOpen(!isOpen);
+        }}
+        aria-label={isOpen ? "Collapse" : "Expand"}
+      >
+        {isOpen ? "▲" : "▼"}
+      </button>
+    </div>
+
+    {/* Collapsible content: Quantity, GST, Add button */}
+    {isOpen && (
+      <div className="mt-4 flex flex-col md:flex-row md:items-center gap-4">
+        <FormItem className="w-full md:w-32">
+          <FormLabel>Quantity</FormLabel>
+          <Input
+            type="number"
+            value={quantity}
+            min={0}
+            onChange={(e) => setQuantity(Number(e.target.value))}
+            className="w-full"
+            placeholder="Qty"
+          />
+        </FormItem>
+
+        <FormItem className="w-full md:w-32">
+          <FormLabel>GST %</FormLabel>
+          <select
+            value={gstRate}
+            onChange={(e) => setGstRate(Number(e.target.value))}
+            className="w-full rounded-md border-gray-300"
+          >
+            {[0, 3, 5, 12, 18, 28].map((gst) => (
+              <option key={gst} value={gst}>
+                {gst}%
+              </option>
+            ))}
+          </select>
+        </FormItem>
+
+        <Button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            addItem();
+          }}
+          className="bg-blue-600 text-white w-full md:w-auto self-stretch md:self-auto px-6 py-2 rounded-md"
+        >
+          Add Item
+        </Button>
+      </div>
+    )}
+  </div>
+</div>
+
 
             {/* Invoice Table */}
             <div className="overflow-x-auto">
-              <Table className="min-w-full">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Product</TableHead>
-                    <TableHead>HSN</TableHead>
-                    <TableHead>Qty</TableHead>
-                    <TableHead>Rate</TableHead>
-                    <TableHead>GST %</TableHead>
-                    <TableHead>Total</TableHead>
-                    <TableHead>Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {fields.map((item, index) => (
-                    <TableRow key={item.id}>
-                      <TableCell>{item.itemName}</TableCell>
-                      <TableCell>{item.hsn}</TableCell>
-                     {/* Quantity with DebouncedInput */}
-          <TableCell>
-  <DebouncedInput
-    type="number"
-    value={item.quantity}
-    onDebouncedChange={(value) => update(index, { ...item, quantity: value })}
-    onTotalCalculate={calculateTotals} // Trigger total calculation after debounce
-  />
-</TableCell>
-
-<TableCell>
-  <DebouncedInput
-    type="number"
-    value={item.rate}
-    onDebouncedChange={(value) => {
-      update(index, { ...item, rate: value });
-      // No need to call calculateTotals here because it's handled in DebouncedInput
-    }}
-    onTotalCalculate={calculateTotals} // Trigger total calculation after debounce
-  />
-</TableCell>
-
-                      <TableCell>
-                        <Select
-                          value={String(item.gstRate)}
-                          onValueChange={(value) => {
-                            update(index, { ...item, gstRate: Number(value) });
-                            calculateTotals();
-                          }}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="GST %" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {[0, 3, 5, 12, 18, 28].map((rate) => (
-                              <SelectItem key={rate} value={String(rate)}>
-                                {rate}%
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                      <TableCell>
-                        ₹{(item.rate * item.quantity * (1 + item.gstRate / 100)).toFixed(2)}
-                      </TableCell>
-                      <TableCell>
-                        <Button variant="destructive" onClick={() => remove(index)}>
-                          <Trash2 />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
+  <div className="hidden md:block">
+    {/* Desktop Table */}
+    <Table className="min-w-full">
+      <TableHeader>
+        <TableRow>
+          <TableHead>Product</TableHead>
+          <TableHead>HSN</TableHead>
+          <TableHead>Qty</TableHead>
+          <TableHead>Rate</TableHead>
+          <TableHead>GST %</TableHead>
+          <TableHead>Total</TableHead>
+          <TableHead>Action</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {fields.map((item, index) => (
+          <TableRow key={item.id}>
+            <TableCell>{item.itemName}</TableCell>
+            <TableCell>{item.hsn}</TableCell>
+            <TableCell>
+              <DebouncedInput
+                type="number"
+                value={item.quantity}
+                onDebouncedChange={(value) => update(index, { ...item, quantity: value })}
+                onTotalCalculate={calculateTotals}
+              />
+            </TableCell>
+            <TableCell>
+              <DebouncedInput
+                type="number"
+                value={item.rate}
+                onDebouncedChange={(value) => update(index, { ...item, rate: value })}
+                onTotalCalculate={calculateTotals}
+              />
+            </TableCell>
+            <TableCell>
+              <Select
+                value={String(item.gstRate)}
+                onValueChange={(value) => {
+                  update(index, { ...item, gstRate: Number(value) });
+                  calculateTotals();
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="GST %" />
+                </SelectTrigger>
+                <SelectContent>
+                  {[0, 3, 5, 12, 18, 28].map((rate) => (
+                    <SelectItem key={rate} value={String(rate)}>
+                      {rate}%
+                    </SelectItem>
                   ))}
-                </TableBody>
-              </Table>
-            </div>
+                </SelectContent>
+              </Select>
+            </TableCell>
+            <TableCell>
+              ₹{(item.rate * item.quantity * (1 + item.gstRate / 100)).toFixed(2)}
+            </TableCell>
+            <TableCell>
+              <Button variant="destructive" onClick={() => remove(index)}>
+                <Trash2 />
+              </Button>
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  </div>
+
+  {/* Mobile view: cards / stacked layout */}
+  <div className="block md:hidden space-y-4">
+    {fields.map((item, index) => (
+      <div key={item.id} className="p-4 border rounded-md shadow-sm">
+        <div className="flex justify-between mb-2">
+          <span className="font-semibold">Product:</span>
+          <span>{item.itemName}</span>
+        </div>
+
+        <div className="flex justify-between mb-2">
+          <span className="font-semibold">HSN:</span>
+          <span>{item.hsn}</span>
+        </div>
+
+        <div className="flex justify-between items-center mb-2">
+          <span className="font-semibold">Qty:</span>
+          <DebouncedInput
+            type="number"
+            value={item.quantity}
+            onDebouncedChange={(value) => update(index, { ...item, quantity: value })}
+            onTotalCalculate={calculateTotals}
+            className="w-20"
+          />
+        </div>
+
+        <div className="flex justify-between items-center mb-2">
+          <span className="font-semibold">Rate:</span>
+          <DebouncedInput
+            type="number"
+            value={item.rate}
+            onDebouncedChange={(value) => update(index, { ...item, rate: value })}
+            onTotalCalculate={calculateTotals}
+            className="w-20"
+          />
+        </div>
+
+        <div className="flex justify-between items-center mb-2">
+          <span className="font-semibold">GST %:</span>
+          <Select
+            value={String(item.gstRate)}
+            onValueChange={(value) => {
+              update(index, { ...item, gstRate: Number(value) });
+              calculateTotals();
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="GST %" />
+            </SelectTrigger>
+            <SelectContent>
+              {[0, 3, 5, 12, 18, 28].map((rate) => (
+                <SelectItem key={rate} value={String(rate)}>
+                  {rate}%
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex justify-between mb-2">
+          <span className="font-semibold">Total:</span>
+          <span>₹{(item.rate * item.quantity * (1 + item.gstRate / 100)).toFixed(2)}</span>
+        </div>
+
+        <div className="text-right">
+          <Button variant="destructive" onClick={() => remove(index)}>
+            <Trash2 />
+          </Button>
+        </div>
+      </div>
+    ))}
+  </div>
+</div>
 
             {/* Payment Section */}
-            <div className="flex flex-col md:flex-row justify-end mt-8 gap-6">
-              <div className="text-lg font-bold space-y-4 text-right w-full max-w-md">
-                <p>Sub Total: ₹{fields.reduce((sum, item) => sum + item.rate * item.quantity, 0)}</p>
-                <p>GST: ₹{gstTotal}</p>
-                <p>Total: ₹{form.getValues("Grandtotal").toFixed(2)}</p>
-              
-                <div className="border p-3 rounded-lg">
-                  <p className="font-semibold">Previous Balance: ₹{previous.toFixed(2)}</p>
-                  <p className="font-semibold text-red-600">
-                    GrandTotal: ₹{form.getValues("SuperTotal").toFixed(2)}
-                  </p>
-                </div>
-                
+          <div className="flex flex-col md:flex-row justify-end mt-8 gap-6">
+  <div className="text-lg font-bold text-right w-full md:max-w-md space-y-4">
+    <p>Sub Total: ₹{fields.reduce((sum, item) => sum + item.rate * item.quantity, 0)}</p>
+    <p>GST: ₹{gstTotal}</p>
+    <p>Total: ₹{form.getValues("Grandtotal").toFixed(2)}</p>
 
-                <div>
-                  <FormLabel>Paid Amount</FormLabel>
-                <Input
-  type="number"
-  value={paidamount === 0 ? "" : paidamount}
-  onChange={(e) => setPaidamount(Number(e.target.value) || 0)}
-  className="w-full"
-/>
+    <div className="border p-3 rounded-lg">
+      <p className="font-semibold">Previous Balance: ₹{previous.toFixed(2)}</p>
+      <p className="font-semibold text-red-600">
+        GrandTotal: ₹{form.getValues("SuperTotal").toFixed(2)}
+      </p>
+    </div>
 
-                </div>
+    <div>
+      <FormLabel>Paid Amount</FormLabel>
+      <Input
+        type="number"
+        value={paidamount === 0 ? "" : paidamount}
+        onChange={(e) => setPaidamount(Number(e.target.value) || 0)}
+        className="w-full"
+      />
+    </div>
 
-                <div>
-                  <p className="font-medium text-red-600">Balance Due:</p>
-                  <Input type="number" value={balanceDue ?? 0}    disabled={isAnonymous} readOnly className="bg-gray-100 w-full" />
-                </div>
+    <div>
+      <p className="font-medium text-red-600">Balance Due:</p>
+      <Input
+        type="number"
+        value={balanceDue ?? 0}
+        disabled={isAnonymous}
+        readOnly
+        className="bg-gray-100 w-full"
+      />
+    </div>
 
-                <div>
-                  <FormLabel>Payment Status</FormLabel>
-                  <Input
-                    value={paymentStatus || "N/A"}
-                      disabled={isAnonymous}
-                    readOnly
-                    className="bg-gray-100 w-full"
-                  />
-                </div>
+    <div>
+      <FormLabel>Payment Status</FormLabel>
+      <Input
+        value={paymentStatus || "N/A"}
+        disabled={isAnonymous}
+        readOnly
+        className="bg-gray-100 w-full"
+      />
+    </div>
 
-                <div>
-                  <p className="font-semibold text-red-600">Return Amount: ₹{refund.toFixed(2)}</p>
-                </div>
-              </div>
-            </div>
+    <div>
+      <p className="font-semibold text-red-600">Return Amount: ₹{refund.toFixed(2)}</p>
+    </div>
+  </div>
+</div>
 
-            <Button type="submit" className="w-full mt-6 py-3" disabled={isSubmitting}>
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Please wait...
-                </>
-              ) : (
-                "Generate Invoice"
-              )}
-            </Button>
+<Button type="submit" className="w-full mt-6 py-3 md:max-w-md md:self-end" disabled={isSubmitting}>
+  {isSubmitting ? (
+    <>
+      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+      Please wait...
+    </>
+  ) : (
+    "Generate Invoice"
+  )}
+</Button>
+
           </form>
         </Form>
       </CardContent>
