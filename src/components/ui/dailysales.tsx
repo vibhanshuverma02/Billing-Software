@@ -1,11 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar,
+ XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar,
 } from 'recharts';
 import { format, parseISO } from 'date-fns';
 
 // Types
+
+
+type PayloadItem = {
+  value: number;
+  [key: string]: any; // allow extra fields if needed
+};
+
 type AnalyticsResponse = {
   totalSales: number;
   totalDue: number;
@@ -34,7 +41,7 @@ const CustomTooltip = ({
   label,
 }: {
   active?: boolean;
-  payload?: any[];
+  payload?: PayloadItem[];
   label?: string;
 }) => {
   if (active && payload && payload.length) {
