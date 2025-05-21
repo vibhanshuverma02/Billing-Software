@@ -10,7 +10,7 @@ import { format, parseISO } from 'date-fns';
 
 type PayloadItem = {
   value: number;
-  [key: string]: any; // allow extra fields if needed
+  [key: string]: unknown; // allow extra fields if needed
 };
 
 type AnalyticsResponse = {

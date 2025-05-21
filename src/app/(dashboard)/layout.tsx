@@ -14,7 +14,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const pathname = usePathname();
   const [isMounted, setIsMounted] = useState(false);
   const [showSplash, setShowSplash] = useState(pathname === "/dashboard");
-  const isMobile = useMediaQuery("(max-width: 768px)");
 
   useEffect(() => {
     setIsMounted(true);
