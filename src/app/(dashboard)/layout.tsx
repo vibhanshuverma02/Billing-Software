@@ -9,27 +9,38 @@ import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { SplashScreen } from "@/components/ui/SplaashScreen";
 
-
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [isMounted, setIsMounted] = useState(false);
-  const [showSplash, setShowSplash] = useState(pathname === "/dashboard");
+  const [showSplash, setShowSplash] = useState(false);
 
+  // When path changes to /dashboard, check sessionStorage for splashShown flag
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
   useEffect(() => {
     if (pathname === "/dashboard") {
-      setShowSplash(true);
-      const timer = setTimeout(() => setShowSplash(false), 3000);
-      return () => clearTimeout(timer);
+      // Only show splash if not shown before this session
+      const splashShown = sessionStorage.getItem("splashShown");
+      if (!splashShown) {
+        setShowSplash(true);
+        const timer = setTimeout(() => {
+          setShowSplash(false);
+          sessionStorage.setItem("splashShown", "true");
+        }, 3000);
+        return () => clearTimeout(timer);
+      } else {
+        setShowSplash(false);
+      }
     } else {
       setShowSplash(false);
     }
   }, [pathname]);
 
   const handleSignOut = () => {
+    // Clear splash flag on sign out to show splash again on next login
+    sessionStorage.removeItem("splashShown");
     signOut({ callbackUrl: "/sign-in" });
   };
 

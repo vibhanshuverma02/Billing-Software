@@ -6,6 +6,7 @@ import { useMemo, useState, useEffect } from 'react';
 
 import axios , { AxiosError }  from 'axios';
 
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface Attendance {
   id: number;
@@ -43,7 +44,6 @@ interface Props {
   totaldeductions: number;
   finalSalaryToPay: number;
   carryForward: number;
-  loanRemaining: number;
   currentBalance: number;
 }
 
@@ -142,7 +142,7 @@ export default function EmployeeCard({
   halfdays,
   presents,
   finalSalaryToPay,
-  loanRemaining,
+ 
   totaldeductions,
 }: Props) {
   const [localTransactions, setLocalTransactions] = useState<Transaction[]>(transactions);
@@ -340,63 +340,75 @@ console.log(888)
 }
 
 return (
-  <div className="p-4 border rounded-lg shadow-md flex flex-col gap-6 bg-black text-white max-w-md w-full">
+  <motion.div
+  initial={{ opacity: 0, y: 30 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ duration: 0.5 }}
+  className="w-full overflow-x-auto"
+>
+ 
+
+  {/* Row 1: Employee Details + Attendance Summary + Salary Summary */}
+  <div className="flex flex-col md:flex-row gap-4 md:gap-6">
+
     {/* 👤 Employee Details */}
-    <div>
-      <h2 className="text-xl font-bold text-black-800 mb-2">👤 Employee Details</h2>
-      <div className="flex items-center gap-4">
-        <div className="w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-xl font-bold">
-          {employee.name?.[0]?.toUpperCase() || 'U'}
-        </div>
-        <div className="space-y-1">
-          <p className="text-lg font-semibold text-black-900">{employee.name}</p>
-          <p className="text-sm text-black-600">📞 {employee.phone}</p>
-          <p className="text-sm text-black-600">🧾 Previous Balance: ₹{localBalance.toLocaleString()}</p>
-        </div>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.1 }}
+      className="flex items-center gap-4 bg-white text-black p-4 rounded-xl shadow min-w-[250px] flex-1"
+    >
+      <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-2xl font-bold">
+        {employee.name?.[0]?.toUpperCase() || 'U'}
       </div>
-    </div>
-
-    {/* 📉 Loan & EMI */}
-    <div>
-      <h2 className="text-xl font-bold text-black-800 mb-2">📉 Loan & EMI</h2>
       <div className="space-y-1">
-        <p className="text-sm text-black-600">💳 Loan Remaining: ₹{loanRemaining}</p>
+        <p className="text-xl font-semibold">{employee.name}</p>
+        <p className="text-sm">📞 {employee.phone}</p>
+        <p className="text-sm">🧾 Prev Bal: ₹{localBalance.toLocaleString()}</p>
       </div>
-    </div>
+    </motion.div>
 
-    {/* 📅 Attendance */}
-    <div>
-      <h2 className="text-xl font-bold text-black-800 mb-2">📅 Attendance</h2>
-      <div className="space-y-1">
-        <p className="text-sm text-black-600">📅 Working Days: {workingdays}</p>
-        <p className="text-sm text-black-600">❌ Absents: {absents}</p>
-        <p className="text-sm text-black-600">🌓 Half Days: {halfdays}</p>
-        <p className="text-sm text-black-600">✅ Presents: {presents}</p>
+    {/* 📅 Attendance Stats */}
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.3 }}
+      className="bg-white text-black p-4 rounded-xl shadow text-sm min-w-[200px] flex-1"
+    >
+      <h3 className="text-lg font-bold mb-1">📅 Attendance</h3>
+      <p>Days: {workingdays} | ✅ {presents} | 🌓 {halfdays} | ❌ {absents}</p>
+    </motion.div>
+
+    {/* 💸 Salary Summary */}
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.2 }}
+      className="bg-white text-black p-4 rounded-xl shadow text-sm min-w-[250px] flex-1"
+    >
+      <h3 className="text-lg font-bold">💰 Salary Summary</h3>
+      <div className="grid grid-cols-2 gap-2">
+        <p>Base: ₹{employee.baseSalary}</p>
+        <p>Month: ₹{localcalculatedsalary}</p>
+        <p>Deductions: ₹{localdeducation}</p>
+        <p>Payable: ₹{localsalary}</p>
       </div>
-    </div>
-
-    {/* 💸 Salaries & Deductions */}
-    <div>
-      <h2 className="text-xl font-bold text-black-800 mb-2">💸 Salaries & Deductions</h2>
-      <div className="space-y-1">
-        <p className="text-sm text-black-600">💰 Base Salary: ₹{employee.baseSalary}</p>
-        <p className="text-sm text-black-600">🧾 Month Salary: ₹{localcalculatedsalary}</p>
-        <p className="text-sm text-black-600">➖ Deductions(advance + previous balance): ₹{localdeducation}</p>
-        <p className="text-sm text-black-600">💸 Final Payable: ₹{localsalary}</p>
-      </div>
-    </div>
-
+    </motion.div>
+  </div>
+  <div className="flex flex-col md:flex-row gap-4 md:gap-6">
+      <AnimatePresence>
     {/* Calendar */}
-    <div>
-      <div className="flex justify-between items-center mb-2 px-2">
-        <button onClick={handlePrevMonth} className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600">
-          ⬅ Previous
-        </button>
-        <h2 className="text-lg font-semibold">{format(month, 'MMMM yyyy')}</h2>
-        <button onClick={handleNextMonth} className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600">
-          Next ➡
-        </button>
-      </div>
+    <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+        className="bg-white text-black p-4 rounded-xl shadow"
+      >
+        <div className="flex justify-between items-center mb-2">
+          <button onClick={handlePrevMonth} className="text-blue-600 hover:underline">⬅ Prev</button>
+          <p className="font-semibold">{format(month, 'MMMM yyyy')}</p>
+          <button onClick={handleNextMonth} className="text-blue-600 hover:underline">Next ➡</button>
+        </div>
 
       <Calendar
         key={month.toISOString()} // Forces re-render when month changes
@@ -472,6 +484,7 @@ return (
           );
         }}
       />
+      
 
       <div className="flex justify-between text-xs mt-2 text-black-600">
         <div><span className="inline-block w-3 h-3 rounded-full bg-green-500 mr-1" /> PRESENT</div>
@@ -485,11 +498,17 @@ return (
       >
         ✅ Save Attendance
       </button>
-    </div>
-
+      
+      </motion.div>
+  
     {/* Transactions */}
-    <div className="mt-4">
-      <h3 className="text-md font-semibold">📑 Transactions for {format(month, 'MMMM yyyy')}</h3>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+        className="bg-white text-black p-4 rounded-xl shadow text-sm"
+      >
+        <h3 className="text-md font-bold mb-2">📑 Transactions</h3>
       <table className="w-full table-auto border border-black-300 mt-2">
         <thead>
           <tr>
@@ -522,14 +541,23 @@ return (
           ))}
         </tbody>
       </table>
-    </div>
+         </motion.div>
+
 
     {/* Add Transaction */}
-    <AddTransaction
-      employeeId={employee.id}
-      selectedMonthDate={month} // now uses parent month
-      onTransactionAdded={handleAddTransaction}
-    />
-  </div>
+    <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.6 }}
+      >
+        <AddTransaction
+          employeeId={employee.id}
+          selectedMonthDate={month}
+          onTransactionAdded={handleAddTransaction}
+        />
+      </motion.div>
+       </AnimatePresence>
+   </div>
+</motion.div>
 );
 }

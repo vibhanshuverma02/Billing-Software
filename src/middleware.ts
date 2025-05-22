@@ -5,6 +5,10 @@ export { default } from 'next-auth/middleware';
 export const config = {
   matcher: [
     '/dashboard/:path*',
+   '/product',
+   '/customermange',
+   "/employee",
+   "/PurchaseMangement",
     '/sign-in',
     '/sign-up',
     '/',
@@ -31,7 +35,10 @@ export async function middleware(request: NextRequest) {
 
   if (!token && (
     url.pathname.startsWith('/dashboard') ||
-    url.pathname.startsWith('/product')    // ✅ check for /product if not authenticated
+    url.pathname.startsWith('/product')  ||
+     url.pathname.startsWith('/customermange') ||
+      url.pathname.startsWith('/employee') ||
+       url.pathname.startsWith('/PurchaseMangement')   // ✅ check for /product if not authenticated
   )) {
     return NextResponse.redirect(new URL('/sign-in', request.url));
   }

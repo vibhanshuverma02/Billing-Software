@@ -68,9 +68,13 @@ export default function AddTransaction({ employeeId, selectedMonthDate, onAdd }:
 
   return (
     <div className="mt-4 space-y-2">
-      <h3 className="text-md font-semibold bg-black ">➕ Add Transaction</h3>
+      <h3 className="text-md font-semibold  ">➕ Add Transaction</h3>
 
-      <select value={type} onChange={(e) => setType(e.target.value as TransactionType)} className="border  bg-black rounded px-2 py-1 w-full">
+<select
+  value={type}
+  onChange={(e) => setType(e.target.value as TransactionType)}
+  className="border rounded px-2 py-1 w-full bg-transparent dark:bg-black dark:text-white"
+>
         
         <option value="SALARY">Salary</option>
         <option value="ADVANCE">Advance</option>

@@ -10,6 +10,7 @@ import DealerForm from "@/components/ui/dealerfrom";
 import SessionLogger from "@/components/ui/session_logger";
 import AnalyticsChart from "@/components/ui/dailysales";
 import { useMediaQuery } from "@/lib/hooks";
+import { useRouter } from "next/navigation";
 
 export default function Dashboard() {
   const { data: session } = useSession();
@@ -39,6 +40,7 @@ export default function Dashboard() {
         return null;
     }
   };
+const router = useRouter();
 
   return (
     <div className="relative px-4 py-6">
@@ -104,16 +106,24 @@ export default function Dashboard() {
       {/* Action Buttons */}
       <div
         className={`grid gap-4 p-4 max-w-5xl mx-auto ${
-          isMobile ? "grid-cols-1" : "grid-cols-3 sm:grid-cols-6"
+          isMobile ? "grid-cols-1" : "grid-cols-3 sm:grid-cols-7"
         } ${activeCard ? "backdrop-blur-sm" : ""}`}
       >
+        <button
+  onClick={() => router.push("/test")}
+  className="w-full rounded-lg py-3 text-sm font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg hover:bg-blue-100"
+>
+  Generate Invoice
+</button>
         {[
+          
+          { key: "Sales", label: "Today Sales" },
           { key: "attendance", label: "Add Attendance" },
-          { key: "invoice", label: "Download Invoice" },
           { key: "stock", label: "Add Stock" },
           { key: "employee", label: "Add Employee" },
           { key: "dealer", label: "Add Dealer" },
-          { key: "Sales", label: "Today Sales" },
+          { key: "invoice", label: "Download Sales/Purchase " },
+         
         ].map(({ key, label }) => (
           <button
             key={key}
@@ -127,6 +137,8 @@ export default function Dashboard() {
             {activeCard === key ? `Hide ${label.split(" ")[1]}` : label}
           </button>
         ))}
+        
+
       </div>
 
       <SessionLogger />

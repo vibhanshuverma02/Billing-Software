@@ -12,12 +12,13 @@ interface Props {
 const MM = (value: number) => value * 2.835; // mm to pt conversion
 
 const LABEL_WIDTH = 63.5;
-const LABEL_HEIGHT = 38.1;
+const LABEL_HEIGHT = 38;
 const COLUMNS = 3;
 const ROWS = 7;
-const HORIZONTAL_GAP = 2.05;
-const PAGE_MARGIN_LEFT_ = 6.5;
-const PAGE_MARGIN_Right_ = 7.5;
+const HORIZONTAL_GAP = 3.0;
+const VERTICAL_GAP = 5.9 / (ROWS - 1); // ≈ 0.9833 mm
+const PAGE_MARGIN_LEFT_ = 3.25;
+const PAGE_MARGIN_Right_ = 3.75;
 const PAGE_MARGIN_TOP = 9.1;
 const PAGE_MARGIN_BOTTOM = 9.1;
 
@@ -33,16 +34,18 @@ export const BarcodePDF = ({ barcodeBase64, count }: Props) => {
         <View style={styles.grid}>
           {labelsToRender.map((_, index) => {
             const isLastColumn = (index + 1) % COLUMNS === 0;
+            const isLastRow = Math.floor(index / COLUMNS) === ROWS - 1;
 
             return (
               <View
-  key={index}
-  style={[
-    styles.cell,
-    isLastColumn ? {} : { marginRight: MM(HORIZONTAL_GAP) },
-  ]}
->
+                key={index}
+               style={[
+  styles.cell,
+  ...(!isLastColumn ? [{ marginRight: MM(HORIZONTAL_GAP) }] : []),
+  ...(!isLastRow ? [{ marginBottom: MM(VERTICAL_GAP) }] : []),
+]}
 
+              >
                 <Image src={barcodeBase64} style={styles.barcode} />
               </View>
             );
@@ -67,17 +70,18 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    width: MM(210 - ( PAGE_MARGIN_LEFT_+ PAGE_MARGIN_Right_)),
+    width: MM(210 - (PAGE_MARGIN_LEFT_ + PAGE_MARGIN_Right_)),
   },
   cell: {
     width: MM(LABEL_WIDTH),
     height: MM(LABEL_HEIGHT),
     alignItems: 'center',
     justifyContent: 'center',
-    border: '0.5px solid black', // <-- Bounding box added here
+     borderWidth: 0.5,          // <-- Proper way to show bounding box
+  borderColor: '#000000',
   },
   barcode: {
-    width: MM(63.1), // inner padding
-    height: MM( 38.1 ),
+    width: MM(60),
+    height: MM(30),
   },
 });

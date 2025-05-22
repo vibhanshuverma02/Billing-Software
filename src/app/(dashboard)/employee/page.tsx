@@ -1,8 +1,8 @@
+// app/your-path/page.tsx (or wherever your main page is)
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/options';
-import EmployeeSearchPage from '@/components/ui/employeedetail';
-import EmployeeFormWrapper from '@/components/ui/InteractiveEmployeePanel '; // 👈 New Client Component
 import { NextResponse } from 'next/server';
+import EmployeePageClient from '@/components/ui/employeemangemnt';
 
 export default async function ProductPage() {
   const session = await getServerSession(authOptions);
@@ -13,22 +13,6 @@ export default async function ProductPage() {
 
   const username = session.user.username;
 
-   return (
-    <div className="p-4">
-  <h1 className="text-2xl font-bold text-center mt-10">Search Employee</h1>
-
-      
-      <div className="w-full flex flex-col items-center">
-  <div className="w-full md:max-w-lg">
-    <EmployeeSearchPage />
-  </div>
-
-  <h3 className="my-4 text-center">Or</h3>
-
-  <div className="w-full md:max-w-lg mx-auto flex justify-center">
-    <EmployeeFormWrapper username={username} />
-  </div>
-</div>
-</div>
-  );
+  // Server component renders client component passing username
+  return <EmployeePageClient username={username} />;
 }

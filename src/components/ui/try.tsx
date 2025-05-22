@@ -7,6 +7,7 @@ import { employeeReducer, initialState } from '@/lib/statereducer';
 import AttendanceCalendar from './AttendanceCalendar';
 import AddTransaction from './AddTranscation';
 import TransactionTable from './Transactiontable';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   updateAttendance as apiUpdateAttendance,
   deleteTransaction,
@@ -27,7 +28,6 @@ interface Props {
   calculatedSalary: number;
   totaldeductions: number;
   finalSalaryToPay: number;
-  loanRemaining: number;
   workingdays: number;
   presents: number;
   absents: number;
@@ -138,46 +138,57 @@ export default function EmployeeCard(props: Props) {
   };
 
   return (
-    <div className="relative max-w-md w-full">
-      {/* Main content - blurred during loading */}
-      <div
-        style={{
-          filter: isLoading ? 'blur(8px)' : 'none',
-          pointerEvents: isLoading ? 'none' : 'auto',
-          transition: 'filter 0.3s ease',
-        }}
-        className="p-4 border rounded-lg shadow-md flex flex-col gap-6 bg-black text-white"
-      >
-        {/* 👤 Employee Details */}
-        <div>
-          <h2 className="text-xl font-bold mb-2">👤 Employee Details</h2>
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-xl font-bold">
-              {props.employee.name?.[0]?.toUpperCase() || 'U'}
-            </div>
-            <div className="space-y-1">
-              <p className="text-lg font-semibold">{props.employee.name}</p>
-              <p className="text-sm text-gray-400">📞 {props.employee.phone}</p>
-              <p className="text-sm text-gray-400">🧾 Previous Balance: ₹{state.balance.toLocaleString()}</p>
-            </div>
+    <AnimatePresence>
+    <motion.div className="relative max-w-4xl w-full mx-auto">
+  {/* Main content - blurred during loading */}
+  < div
+    style={{
+      filter: isLoading ? 'blur(8px)' : 'none',
+      pointerEvents: isLoading ? 'none' : 'auto',
+      transition: 'filter 0.3s ease',
+    }}
+    className="p-6 border rounded-xl shadow-lg  flex flex-col gap-8"
+  >
+    <motion.div className="flex flex-col md:flex-row gap-6">
+      {/* 👤 Employee Details */}
+      <div className="p-6 border rounded-lg shadow-md flex flex-col gap-4 w-full md:w-1/2 ">
+        <h2 className="text-xl font-bold mb-2">👤 Employee Details</h2>
+        <div className="flex items-center gap-4">
+          <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-2xl font-bold">
+            {props.employee.name?.[0]?.toUpperCase() || 'U'}
+          </div>
+          <div className="space-y-1">
+            <p className="text-lg font-semibold">{props.employee.name}</p>
+            <p className="text-sm text-gray-500">📞 {props.employee.phone}</p>
+            <p className="text-sm text-gray-500">🧾 Previous Balance: ₹{state.balance.toLocaleString()}</p>
           </div>
         </div>
+      </div>
 
-        {/* 📉 Loan & EMI */}
-        <div>
-          <h2 className="text-xl font-bold mb-2">📉 Loan & EMI</h2>
-          <p className="text-sm text-gray-400">💳 Loan Remaining: ₹{props.loanRemaining}</p>
+      {/* 📊 Attendance Summary */}
+      <div className="p-6 border rounded-lg shadow-md w-full md:w-1/2 ">
+        <h2 className="text-xl font-bold mb-4">📊 Attendance Summary</h2>
+        <div className="space-y-1">
+          <p className="text-sm text-gray-700">📅 Working Days: {state.workingdays}</p>
+          <p className="text-sm text-gray-700">✅ Presents: {state.presents}</p>
+          <p className="text-sm text-gray-700">🌓 Half Days: {state.halfdays}</p>
+          <p className="text-sm text-gray-700">❌ Absents: {state.absents}</p>
         </div>
-
-        {/* 📊 Attendance Summary */}
-        <div>
-          <h2 className="text-xl font-bold mb-2">📊 Attendance Summary</h2>
-          <p className="text-sm text-gray-400">📅 Working Days: {state.workingdays}</p>
-          <p className="text-sm text-gray-400">✅ Presents: {state.presents}</p>
-          <p className="text-sm text-gray-400">🌓 Half Days: {state.halfdays}</p>
-          <p className="text-sm text-gray-400">❌ Absents: {state.absents}</p>
+      </div>
+       <div className="p-6 border rounded-lg shadow-md w-full md:w-1/2 ">
+       <div>
+          <h2 className="text-xl font-bold mb-2">💸 Salaries & Deductions</h2>
+          <p className="text-sm text-gray-400">💰 Base Salary: ₹{props.employee.baseSalary}</p>
+          <p className="text-sm text-gray-400">🧾 Month Salary: ₹{state.calculatedSalary}</p>
+          <p className="text-sm text-gray-400">➖ Deductions: ₹{state.deductions}</p>
+          <p className="text-sm text-gray-400">💸 Final Payable: ₹{state.salary}</p>
         </div>
+    </div>
+  </motion.div>
 
+
+  {/* 💸 Salaries & Deductions */}
+       
         {/* 📅 Attendance Calendar */}
         <AttendanceCalendar
           attendance={state.attendance}
@@ -194,14 +205,7 @@ export default function EmployeeCard(props: Props) {
           loading={loadingAction === 'attendance'}
         />
 
-        {/* 💸 Salaries & Deductions */}
-        <div>
-          <h2 className="text-xl font-bold mb-2">💸 Salaries & Deductions</h2>
-          <p className="text-sm text-gray-400">💰 Base Salary: ₹{props.employee.baseSalary}</p>
-          <p className="text-sm text-gray-400">🧾 Month Salary: ₹{state.calculatedSalary}</p>
-          <p className="text-sm text-gray-400">➖ Deductions: ₹{state.deductions}</p>
-          <p className="text-sm text-gray-400">💸 Final Payable: ₹{state.salary}</p>
-        </div>
+      
 
         {/* Transaction Table */}
         <TransactionTable
@@ -251,6 +255,7 @@ export default function EmployeeCard(props: Props) {
           Loading...
         </div>
       )}
-    </div>
+    </motion.div>
+    /</AnimatePresence>
   );
 }

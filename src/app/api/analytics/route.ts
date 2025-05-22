@@ -1,7 +1,8 @@
 import { prisma } from '@/config/db';
 import { startOfWeek, endOfWeek, subWeeks, parseISO, eachDayOfInterval, format, isValid } from 'date-fns';
 import { NextRequest, NextResponse } from 'next/server';
-
+import { authOptions } from '../auth/[...nextauth]/options';
+import { getServerSession } from "next-auth"
 // Normalize dates to UTC start/end of day
 function normalizeToUTCStart(date: Date): Date {
   return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0));
@@ -14,8 +15,12 @@ function normalizeToUTCEnd(date: Date): Date {
 export async function GET(req: NextRequest) {
   try {
     // Mock username, replace with real session extraction
-    const username = "vibhanshu";
-
+    // const username = "vibhanshu";
+ const session = await getServerSession(authOptions);
+        if (!session || !session.user?.username) {
+          return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+    const username = session.user.username;
     const url = new URL(req.url);
     const type = url.searchParams.get('type');
     const start = url.searchParams.get('start');

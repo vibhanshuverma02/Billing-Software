@@ -60,19 +60,21 @@ export default function InvoiceExport() {
       </h2>
 
       {/* Toggle Switch */}
-      <div className="flex items-center gap-3 mb-4">
-        <span className="text-black dark:text-white">Dealer</span>
-        <label className="relative inline-flex items-center cursor-pointer">
-          <input
-            type="checkbox"
-            checked={isExport}
-            onChange={() => setIsExport(!isExport)}
-            className="sr-only peer"
-          />
-          <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-green-500 peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 dark:bg-gray-700 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600"></div>
-        </label>
-        <span className="text-black dark:text-white">Invoice</span>
-      </div>
+     <div className="flex items-center gap-3 mb-4">
+  <span className="text-black dark:text-white">Purchase record</span>
+  <label className="relative inline-flex items-center cursor-pointer">
+    <input
+      type="checkbox"
+      checked={isExport}
+      onChange={() => setIsExport(!isExport)}
+      className="sr-only peer"
+    />
+    <div className="w-11 h-6 bg-gray-300 rounded-full peer-checked:bg-emerald-400 dark:bg-gray-600 peer-focus:ring-2 peer-focus:ring-offset-2 peer-focus:ring-indigo-500 transition-colors duration-300"></div>
+    <div className="absolute top-[2px] left-[2px] w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-300 transform peer-checked:translate-x-full"></div>
+  </label>
+  <span className="text-black dark:text-white">Sales GST Bill</span>
+</div>
+
 
       <div className="flex gap-2 mb-4">
         <select

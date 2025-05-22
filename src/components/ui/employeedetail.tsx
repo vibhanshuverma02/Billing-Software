@@ -37,7 +37,7 @@ interface EmployeeData {
   totaldeductions: number;
   finalSalaryToPay: number;
   carryForward: number;
-  loanRemaining: number;
+  
   currentBalance: number;
 }
 
@@ -114,7 +114,7 @@ export default function EmployeeSearchPage() {
             totaldeductions: res.data.totalDeductions,
             finalSalaryToPay: res.data.finalSalaryToPay,
             carryForward: res.data.carryForward,
-            loanRemaining: res.data.loanRemaining,
+          
             currentBalance: res.data.currentBalance,
           };
 
@@ -147,49 +147,61 @@ export default function EmployeeSearchPage() {
   };
 
   return (
-    <div className="p-6 space-y-4">
-      {/* Search + Dropdown */}
-      <div className="flex flex-col sm:flex-row items-center gap-2">
-        {/* Dropdown for Employee List */}
-        <select
-          value=""
-          onChange={(e) => {
-            const selectedUsername = e.target.value;
-            if (selectedUsername) {
-              setInputUser(selectedUsername);
-              setSearchUser(selectedUsername);
-            }
-          }}
-      className='border border-black bg-black text-white px-3 py-2 rounded w-full focus:outline-none focus:ring-0 focus:border-gray-700 transition-colors'
-        >
-          <option value="">Select Employee</option>
-          {employees.map((emp) => (
-            <option key={emp.id} value={emp.name}>
-              {emp.name} 
-            </option>
-          ))}
-        </select>
+   <div className="p-6 space-y-4">
+  {/* Search + Dropdown */}
+  <div className="flex flex-col  items-center gap-3">
+    {/* Dropdown for Employee List */}
+    <select
+      value={inputUser} // controlled by inputUser state
+      onChange={(e) => {
+        const selectedUsername = e.target.value;
+        setInputUser(selectedUsername);
+        setSearchUser(selectedUsername);
+      }}
+      className="
+        border border-gray-300 rounded px-3 py-2 w-full sm:w-64
+        bg-transparent dark:bg-black dark:text-white
+        focus:outline-none focus:ring-2 focus:ring-blue-400
+        transition-colors
+      "
+    >
+      <option value="">Select Employee</option>
+      {employees.map((emp) => (
+        <option key={emp.id} value={emp.name}>
+          {emp.name}
+        </option>
+      ))}
+    </select>
 
-        {/* Manual username input */}
-        <input
-          type="text"
-          placeholder="Enter username"
-          className="border border-gray-300 rounded px-4 py-2 w-full sm:w-64 focus:outline-none focus:ring-2 focus:ring-blue-400"
-          value={inputUser}
-          onChange={(e) => setInputUser(e.target.value)}
-        />
+    
+    {/* <input
+      type="text"
+      placeholder="Enter username"
+      className="
+        border border-gray-300 rounded px-4 py-2 w-full sm:w-64
+        focus:outline-none focus:ring-2 focus:ring-blue-400
+        transition-colors
+      "
+      value={inputUser}
+      onChange={(e) => setInputUser(e.target.value)}
+    /> */}
 
-        <button
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors w-full sm:w-auto"
-          onClick={() => setSearchUser(inputUser.trim())}
-          disabled={!inputUser.trim()}
-        >
-          Search
-        </button>
-      </div>
+    <button
+      className="
+        bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors
+        w-full sm:w-auto
+      "
+      onClick={() => setSearchUser(inputUser.trim())}
+      disabled={!inputUser.trim()}
+    >
+      Search
+    </button>
+  </div>
+
+
 
       {/* Searching text */}
-      {loading && <p className="text-white font-semibold">Searching...</p>}
+      {loading && <p className="text-center font-semibold">Searching...</p>}
 
       {/* Employee Card */}
       {!loading && data && (
@@ -206,7 +218,6 @@ export default function EmployeeSearchPage() {
             presents={data.present}
             totaldeductions={data.totaldeductions}
             finalSalaryToPay={data.finalSalaryToPay}
-            loanRemaining={data.loanRemaining}
             transactions={transactions}
             loading={loading}
           />
