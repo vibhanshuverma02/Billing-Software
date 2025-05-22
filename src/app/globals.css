@@ -228,7 +228,7 @@ html {
     opacity: 0;
   }
   to {
-    transform: scale(1) translateY(-4vh); /* You can tweak -30vh for how high it moves */
+    transform: scale(1) translateY(-2vh); /* You can tweak -30vh for how high it moves */
     opacity: 1;
   }
 }

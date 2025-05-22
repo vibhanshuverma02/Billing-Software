@@ -44,7 +44,7 @@ export default function Dashboard() {
     <div className="relative px-4 py-6">
       {/* Overlay */}
       {activeCard && (
-  <div className="fixed inset-0 z-30 flex items-start justify-center pt-4 backdrop-blur-sm bg-black/30 animate-scaleUpToTop">
+  <div className="fixed inset-0 z-30 flex items-start justify-center pt-4 backdrop-blur-sm  animate-scaleUpToTop">
     <div className="flex flex-col items-center  ">
       <img
         src="/images/final2-Photoroom.png"

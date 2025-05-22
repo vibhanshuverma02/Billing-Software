@@ -666,28 +666,32 @@ useEffect(() => {
         <FormItem className="w-full md:w-32">
           <FormLabel>Quantity</FormLabel>
           <Input
-            type="number"
-            value={quantity}
-            min={0}
-            onChange={(e) => setQuantity(Number(e.target.value))}
-            className="w-full"
-            placeholder="Qty"
-          />
+  type="number"
+  value={quantity}
+  min={0}
+  onClick={(e) => e.stopPropagation()}
+  onChange={(e) => setQuantity(Number(e.target.value))}
+  className="w-full"
+  placeholder="Qty"
+/>
+
         </FormItem>
 
         <FormItem className="w-full md:w-32">
           <FormLabel>GST %</FormLabel>
           <select
-            value={gstRate}
-            onChange={(e) => setGstRate(Number(e.target.value))}
-            className="w-full rounded-md border-gray-300"
-          >
-            {[0, 3, 5, 12, 18, 28].map((gst) => (
-              <option key={gst} value={gst}>
-                {gst}%
-              </option>
-            ))}
-          </select>
+  value={gstRate}
+  onClick={(e) => e.stopPropagation()}
+  onChange={(e) => setGstRate(Number(e.target.value))}
+  className="w-full rounded-md border-gray-300"
+>
+  {[0, 3, 5, 12, 18, 28].map((gst) => (
+    <option key={gst} value={gst}>
+      {gst}%
+    </option>
+  ))}
+</select>
+
         </FormItem>
 
         <Button
