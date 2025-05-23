@@ -247,14 +247,26 @@ useEffect(() => {
 
   // Debounced Calculation Function
   const calculateTotals = useDebounceCallback(() => {
-    const subtotal = fields.reduce((sum, item) => sum + item.rate * item.quantity, 0);
-    const gst = fields.reduce((sum, item) => sum + (item.rate * item.quantity * item.gstRate) / 100, 0);
-    const grandTotal = subtotal + gst;
-    const superTotal = grandTotal + previous;
-    form.setValue("previous", previous)
-    form.setValue("Grandtotal", grandTotal);
-    form.setValue("SuperTotal", superTotal);
-    setGstTotal(gst);
+
+
+// Correct GST extraction from GST-inclusive rate
+const subtotal = fields.reduce((sum, item) => sum + item.rate * item.quantity, 0);
+
+// Correct GST extraction from inclusive rate and round to 2 decimals
+const gst = fields.reduce((sum, item) => {
+  const itemGst =
+    (item.rate * item.quantity * item.gstRate) / (100 + item.gstRate);
+  return sum + Number(itemGst.toFixed(2));
+}, 0);
+
+const grandTotal = subtotal - gst;
+const superTotal = grandTotal + previous + gst;
+
+form.setValue("previous", previous);
+form.setValue("Grandtotal", grandTotal);
+form.setValue("SuperTotal", superTotal);
+setGstTotal(gst);
+
 
   
     const newRefund = paidamount - superTotal;
@@ -685,7 +697,7 @@ useEffect(() => {
   onChange={(e) => setGstRate(Number(e.target.value))}
   className="w-full rounded-md border-gray-300"
 >
-  {[0, 3, 5, 12, 18, 28].map((gst) => (
+  {[0, 3, 5.31, 12, 18, 28].map((gst) => (
     <option key={gst} value={gst}>
       {gst}%
     </option>
@@ -739,14 +751,21 @@ useEffect(() => {
                 onTotalCalculate={calculateTotals}
               />
             </TableCell>
-            <TableCell>
-              <DebouncedInput
-                type="number"
-                value={item.rate}
-                onDebouncedChange={(value) => update(index, { ...item, rate: value })}
-                onTotalCalculate={calculateTotals}
-              />
-            </TableCell>
+           <TableCell>
+  <div className="flex flex-col">
+    <span className="text-sm text-gray-500">
+      ₹{(item.rate / (1 + item.gstRate / 100)).toFixed(2)} (Excl. GST)
+    </span>
+    <DebouncedInput
+      type="number"
+      value={item.rate}
+      onDebouncedChange={(value) => update(index, { ...item, rate: value })}
+      onTotalCalculate={calculateTotals}
+      className="mt-1"
+    />
+  </div>
+</TableCell>
+
             <TableCell>
               <Select
                 value={String(item.gstRate)}
@@ -759,7 +778,7 @@ useEffect(() => {
                   <SelectValue placeholder="GST %" />
                 </SelectTrigger>
                 <SelectContent>
-                  {[0, 3, 5, 12, 18, 28].map((rate) => (
+                  {[0, 3, 5.31, 12, 18, 28].map((rate) => (
                     <SelectItem key={rate} value={String(rate)}>
                       {rate}%
                     </SelectItem>
@@ -768,7 +787,7 @@ useEffect(() => {
               </Select>
             </TableCell>
             <TableCell>
-              ₹{(item.rate * item.quantity * (1 + item.gstRate / 100)).toFixed(2)}
+              ₹{(item.rate ).toFixed(2)}
             </TableCell>
             <TableCell>
               <Button variant="destructive" onClick={() => remove(index)}>
@@ -806,16 +825,22 @@ useEffect(() => {
           />
         </div>
 
-        <div className="flex justify-between items-center mb-2">
-          <span className="font-semibold">Rate:</span>
-          <DebouncedInput
-            type="number"
-            value={item.rate}
-            onDebouncedChange={(value) => update(index, { ...item, rate: value })}
-            onTotalCalculate={calculateTotals}
-            className="w-20"
-          />
-        </div>
+       <div className="flex justify-between items-start mb-2">
+  <span className="font-semibold">Rate:</span>
+  <div className="flex flex-col items-end">
+    <span className="text-sm text-gray-500">
+      ₹{(item.rate / (1 + item.gstRate / 100)).toFixed(2)} (Excl. GST)
+    </span>
+    <DebouncedInput
+      type="number"
+      value={item.rate}
+      onDebouncedChange={(value) => update(index, { ...item, rate: value })}
+      onTotalCalculate={calculateTotals}
+      className="w-24 mt-1"
+    />
+  </div>
+</div>
+
 
         <div className="flex justify-between items-center mb-2">
           <span className="font-semibold">GST %:</span>
@@ -841,7 +866,7 @@ useEffect(() => {
 
         <div className="flex justify-between mb-2">
           <span className="font-semibold">Total:</span>
-          <span>₹{(item.rate * item.quantity * (1 + item.gstRate / 100)).toFixed(2)}</span>
+          <span>₹{(item.rate).toFixed(2)}</span>
         </div>
 
         <div className="text-right">
@@ -857,9 +882,10 @@ useEffect(() => {
             {/* Payment Section */}
           <div className="flex flex-col md:flex-row justify-end mt-8 gap-6">
   <div className="text-lg font-bold text-right w-full md:max-w-md space-y-4">
-    <p>Sub Total: ₹{fields.reduce((sum, item) => sum + item.rate * item.quantity, 0)}</p>
+    {/* <p>Sub Total: ₹{fields.reduce((sum, item) => sum + item.rate * item.quantity, 0)}</p> */}
+    <p>item cost: ₹{form.getValues("Grandtotal").toFixed(2)}</p>
     <p>GST: ₹{gstTotal}</p>
-    <p>Total: ₹{form.getValues("Grandtotal").toFixed(2)}</p>
+    
 
     <div className="border p-3 rounded-lg">
       <p className="font-semibold">Previous Balance: ₹{previous.toFixed(2)}</p>

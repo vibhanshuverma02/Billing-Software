@@ -213,15 +213,19 @@ const InvoicePDF = ({
             <View style={styles.row}>
               {mobileNo !== "0000000000" && (
                 <Text>
-                  <Text style={styles.label}>Mobile:</Text> {mobileNo}
-              
+                <Text style={styles.label}>Mobile:</Text> {mobileNo}  
+                  
+               <Text style={styles.label}>paymentStatus:</Text>{" "}
+                {paymentStatus}
+                   
               </Text>
               
+
               )}
-              <Text>
-                <Text style={styles.label}>paymentStatus:</Text>{" "}
-                {paymentStatus}
-                   </Text>
+              
+                <Text style={styles.label}>paymentStatus: paid </Text>{" "}
+                
+                   
               <Text>
                 <Text style={styles.label}>Bill Date:</Text>{" "}
                 {new Date(date).toLocaleDateString("en-IN")}
@@ -234,43 +238,61 @@ const InvoicePDF = ({
               <View style={styles.itemHeader}>
                 <Text style={col("6%", pageSize, "center")}>S.N.</Text>
                 <Text style={col("38%", pageSize)}>Description</Text>
+                <Text style={col("17%", pageSize, "left")}>Rate </Text>
                 <Text style={col("10%", pageSize, "center")}>Qty</Text>
-                <Text style={col("14%", pageSize, "right")}>Rate </Text>
-                
                 <Text style={col("22%", pageSize, "right")}>Amount</Text>
               </View>
 
-              {items.map((item, index) => (
-                <View key={index} style={styles.itemRow}>
-                  <Text style={col("6%", pageSize, "center")}>{index + 1}</Text>
-                  <Text style={col("38%", pageSize)}>{item.itemName}</Text>
-                  <Text style={col("10%", pageSize, "center")}>
-                    {item.quantity}
-                  </Text>
-                  <Text style={col("16%", pageSize, "right")}>
-                    ₹{item.rate.toFixed(2)}
-                  </Text>
-                  <Text style={col("22%", pageSize, "right")}>
-                    ₹{(item.rate * item.quantity * (1 + item.gstRate / 100)).toFixed(2)}
-                  </Text>
-                </View>
-              ))}
+             {items.map((item, index) => {
+  const baseRate = item.rate / (1 + item.gstRate / 100); // extract actual rate (excluding GST)
+  const amount = item.rate * item.quantity; // item.rate already includes GST
 
-              <View
-                style={{
-                  flexDirection: "row",
-                  borderTop: "1px solid black",
-                  backgroundColor: "#f9f9f9",
-                  paddingVertical: 4,
-                }}
-              >
-                <Text style={col("44%", pageSize, "right")}>Total</Text>
-                <Text style={col("10%", pageSize, "center")}>
-                  {items.reduce((sum, item) => sum + item.quantity, 0)}
-                </Text>
-                <Text style={col("46%", pageSize)} />
-              </View>
-            </View>
+  return (
+    <View key={index} style={styles.itemRow}>
+      <Text style={col("6%", pageSize, "center")}>{index + 1}</Text>
+      <Text style={col("38%", pageSize)}>{item.itemName}</Text>
+      <Text style={col("17%", pageSize, "left")}>
+        ₹{baseRate.toFixed(2)}
+      </Text>
+      <Text style={col("10%", pageSize, "center")}>
+        {item.quantity}
+      </Text>
+      <Text style={col("22%", pageSize, "right")}>
+        ₹{amount.toFixed(2)}
+      </Text>
+    </View>
+  );
+})}
+<View
+  style={{
+    flexDirection: "row",
+    borderTop: "1px solid black",
+    backgroundColor: "#f9f9f9",
+    paddingVertical: 4,
+  }}
+>
+  {/* Empty S.N. */}
+  <Text style={col("6%", pageSize)} />
+
+  {/* Description column */}
+  <Text style={col("25%", pageSize)} />
+
+  {/* "Total" label between Description and Rate */}
+  <Text style={col("13%", pageSize)}>Total</Text>
+
+  {/* Empty Rate column */}
+  <Text style={col("17%", pageSize)} />
+
+  {/* Total quantity under Qty column */}
+  <Text style={col("10%", pageSize, "center")}>
+    {items.reduce((sum, item) => sum + item.quantity, 0)}
+  </Text>
+
+  {/* Empty Amount */}
+  <Text style={col("22%", pageSize)} />
+</View>
+
+ </View>
 
             {/* Totals */}
             <View style={styles.totals}>
