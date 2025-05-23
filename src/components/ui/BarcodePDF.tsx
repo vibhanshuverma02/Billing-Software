@@ -8,19 +8,24 @@ interface Props {
   count: number;
 }
 
-// --- Constants ---
-const MM = (value: number) => value * 2.835; // mm to pt conversion
 
-const LABEL_WIDTH = 63.5;
-const LABEL_HEIGHT = 38;
+// --- Constants ---
+const CM = (value: number) => value * 28.346; // cm to pt conversion
+
+const LABEL_WIDTH_CM = 6.398;
+const LABEL_HEIGHT_CM = 3.8;
+const HORIZONTAL_GAP_CM = 0.203;
+const VERTICAL_GAP_CM = 0; // You said no gap between rows
 const COLUMNS = 3;
 const ROWS = 7;
-const HORIZONTAL_GAP = 3.0;
-const VERTICAL_GAP = 5.9 / (ROWS - 1); // ≈ 0.9833 mm
-const PAGE_MARGIN_LEFT_ = 3.25;
-const PAGE_MARGIN_Right_ = 3.75;
-const PAGE_MARGIN_TOP = 9.1;
-const PAGE_MARGIN_BOTTOM = 9.1;
+
+const PAGE_MARGIN_Right_CM = 0.688;
+const PAGE_MARGIN_LEFT_CM = 0.712 ;
+const PAGE_MARGIN_TOP_CM = 1.484;
+const PAGE_MARGIN_BOTTOM_CM = 1.616;
+
+const BARCODE_WIDTH_CM = 5.721;
+const BARCODE_HEIGHT_CM = 2.861;
 
 const LABELS_PER_PAGE = COLUMNS * ROWS;
 
@@ -41,8 +46,8 @@ export const BarcodePDF = ({ barcodeBase64, count }: Props) => {
                 key={index}
                style={[
   styles.cell,
-  ...(!isLastColumn ? [{ marginRight: MM(HORIZONTAL_GAP) }] : []),
-  ...(!isLastRow ? [{ marginBottom: MM(VERTICAL_GAP) }] : []),
+  ...(!isLastColumn ? [{ marginRight: CM(HORIZONTAL_GAP_CM) }] : []),
+  ...(!isLastRow ? [{ marginBottom: CM(VERTICAL_GAP_CM) }] : []),
 ]}
 
               >
@@ -59,10 +64,10 @@ export const BarcodePDF = ({ barcodeBase64, count }: Props) => {
 // --- Styles ---
 const styles = StyleSheet.create({
   page: {
-    paddingTop: MM(PAGE_MARGIN_TOP),
-    paddingBottom: MM(PAGE_MARGIN_BOTTOM),
-    paddingLeft: MM(PAGE_MARGIN_LEFT_),
-    paddingRight: MM(PAGE_MARGIN_Right_),
+    paddingTop: CM(PAGE_MARGIN_TOP_CM),
+    paddingBottom: CM(PAGE_MARGIN_BOTTOM_CM),
+    paddingLeft: CM(PAGE_MARGIN_LEFT_CM),
+    paddingRight: CM(PAGE_MARGIN_Right_CM),
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'flex-start',
@@ -70,18 +75,17 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    width: MM(210 - (PAGE_MARGIN_LEFT_ + PAGE_MARGIN_Right_)),
+    width: CM(210 - (PAGE_MARGIN_LEFT_CM + PAGE_MARGIN_Right_CM)),
   },
   cell: {
-    width: MM(LABEL_WIDTH),
-    height: MM(LABEL_HEIGHT),
+    width: CM(LABEL_WIDTH_CM),
+    height: CM(LABEL_HEIGHT_CM),
     alignItems: 'center',
     justifyContent: 'center',
-     borderWidth: 0.5,          // <-- Proper way to show bounding box
-  borderColor: '#000000',
+ 
   },
-  barcode: {
-    width: MM(60),
-    height: MM(30),
+ barcode: {
+    width: CM(BARCODE_WIDTH_CM),
+    height: CM(BARCODE_HEIGHT_CM),
   },
 });

@@ -17,7 +17,7 @@ export default function TransactionTable({ transactions, onDelete }: Props) {
       ) : (
         <div className="overflow-x-auto">
           <table className="min-w-[600px] w-full table-auto border border-gray-300">
-            <thead className="bg-gray-100">
+            <thead className="">
               <tr>
                 <th className="p-2 text-left whitespace-nowrap">Date</th>
                 <th className="p-2 text-left whitespace-nowrap">Type</th>
@@ -32,7 +32,7 @@ export default function TransactionTable({ transactions, onDelete }: Props) {
                 const displayDate = isValid ? format(rawDate, 'dd/MM/yyyy') : 'Invalid Date';
 
                 return (
-                  <tr key={`${tx.id}-${tx.date}`} className="even:bg-gray-50">
+                  <tr key={`${tx.id}-${tx.date}`} >
                     <td className="p-2 whitespace-nowrap">{displayDate}</td>
                     <td className="p-2 whitespace-nowrap">{tx.type}</td>
                     <td className="p-2 whitespace-nowrap">₹{tx.amount}</td>

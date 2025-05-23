@@ -154,7 +154,7 @@ export default function EmployeeCard(props: Props) {
       <div className="p-6 border rounded-lg shadow-md flex flex-col gap-4 w-full md:w-1/2 ">
         <h2 className="text-xl font-bold mb-2">👤 Employee Details</h2>
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-2xl font-bold">
+          <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-2xl font-bold">
             {props.employee.name?.[0]?.toUpperCase() || 'U'}
           </div>
           <div className="space-y-1">
