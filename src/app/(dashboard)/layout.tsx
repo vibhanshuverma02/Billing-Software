@@ -38,11 +38,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     }
   }, [pathname]);
 
-  const handleSignOut = () => {
-    // Clear splash flag on sign out to show splash again on next login
-    sessionStorage.removeItem("splashShown");
-    signOut({ callbackUrl: "/sign-in" });
-  };
+  const handleSignOut = async () => {
+  sessionStorage.removeItem("splashShown");
+  await signOut({ redirect: false }); // Avoid auto redirect
+  window.location.href = "/sign-in";  // Hard redirect to clear history stack
+};
+
 
   if (!isMounted) {
     return <div className="p-5">Loading...</div>;

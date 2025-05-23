@@ -14,7 +14,7 @@ export default async function ProductPage() {
   }
 
   const username = session.user.username;
-
+console.log(username);
   return (
     <div className="p-4 space-y-6 max-w-7xl mx-auto">
       {/* Page Header */}
