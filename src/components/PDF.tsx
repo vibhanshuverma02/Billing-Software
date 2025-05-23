@@ -235,7 +235,7 @@ const InvoicePDF = ({
                 <Text style={col("6%", pageSize, "center")}>S.N.</Text>
                 <Text style={col("38%", pageSize)}>Description</Text>
                 <Text style={col("10%", pageSize, "center")}>Qty</Text>
-                <Text style={col("14%", pageSize, "right")}>Rate</Text>
+                <Text style={col("14%", pageSize, "right")}>Rate </Text>
                 
                 <Text style={col("22%", pageSize, "right")}>Amount</Text>
               </View>
@@ -247,7 +247,7 @@ const InvoicePDF = ({
                   <Text style={col("10%", pageSize, "center")}>
                     {item.quantity}
                   </Text>
-                  <Text style={col("14%", pageSize, "right")}>
+                  <Text style={col("16%", pageSize, "right")}>
                     ₹{item.rate.toFixed(2)}
                   </Text>
                   <Text style={col("22%", pageSize, "right")}>
