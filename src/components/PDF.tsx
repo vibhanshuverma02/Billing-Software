@@ -103,7 +103,7 @@ outerWrapper: {
     },
     bilingualText: {
       fontFamily: "NotoSansDevanagari",
-      fontSize: pageSize === "A4" ? 7 : 6,
+      fontSize: pageSize === "A4" ? 7 : 7,
       textAlign: "center",
       marginTop: 3,
       lineHeight: 1.5,
