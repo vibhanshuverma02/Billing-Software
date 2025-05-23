@@ -53,16 +53,16 @@ outerWrapper: {
       paddingVertical: 4,
     },
     shopName: {
-      fontSize: pageSize === "A4" ? 14 : 12,
+      fontSize: pageSize === "A4" ? 16 : 14,
       fontWeight: "bold",
     },
     shopInfo: {
-      fontSize: pageSize === "A4" ? 8 : 7,
+      fontSize: pageSize === "A4" ? 9 : 9,
       marginTop: 2,
     },
     title: {
       textAlign: "center",
-      fontSize: pageSize === "A4" ? 10 : 9,
+      fontSize: pageSize === "A4" ? 10 : 10,
       fontWeight: "bold",
       marginTop: 6,
       marginBottom: 6,
@@ -103,7 +103,7 @@ outerWrapper: {
     },
     bilingualText: {
       fontFamily: "NotoSansDevanagari",
-      fontSize: pageSize === "A4" ? 7 : 6,
+      fontSize: pageSize === "A4" ? 7 : 7,
       textAlign: "center",
       marginTop: 3,
       lineHeight: 1.5,
