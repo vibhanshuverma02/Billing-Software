@@ -787,7 +787,7 @@ useEffect(() => {
               </Select>
             </TableCell>
             <TableCell>
-              ₹{(item.rate ).toFixed(2)}
+              ₹{(item.rate * item.quantity).toFixed(2)}
             </TableCell>
             <TableCell>
               <Button variant="destructive" onClick={() => remove(index)}>
@@ -855,7 +855,7 @@ useEffect(() => {
               <SelectValue placeholder="GST %" />
             </SelectTrigger>
             <SelectContent>
-              {[0, 3, 5, 12, 18, 28].map((rate) => (
+              {[0, 3, 5.31, 12, 18, 28].map((rate) => (
                 <SelectItem key={rate} value={String(rate)}>
                   {rate}%
                 </SelectItem>
@@ -866,7 +866,7 @@ useEffect(() => {
 
         <div className="flex justify-between mb-2">
           <span className="font-semibold">Total:</span>
-          <span>₹{(item.rate).toFixed(2)}</span>
+          <span>₹{(item.rate * item.quantity ).toFixed(2)}</span>
         </div>
 
         <div className="text-right">
