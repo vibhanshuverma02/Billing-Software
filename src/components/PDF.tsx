@@ -180,9 +180,6 @@ const InvoicePDF = ({
               <Text style={styles.shopInfo}>
                 Arya Samaj road B.T. Ganj Roorkee
               </Text>
-              <Text style={styles.shopInfo}>
-                Mob.No.: 8439751861 | Email:
-              </Text>
             </View>
 
             {/* Invoice Info */}
