@@ -148,6 +148,7 @@ const InvoicePDF = ({
   Grandtotal,
   gstTotal,
   paidAmount,
+  balanceDue,
   paymentStatus,
 }: InvoicePDFProps) => {
   const styles = getStyles(pageSize);
