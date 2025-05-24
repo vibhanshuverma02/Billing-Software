@@ -289,7 +289,7 @@ useEffect(() => {
   
   const [selectedStock, setSelectedStock] = useState<InvoiceFormData["items"][number] |  null>(null);
   const [quantity, setQuantity] = useState<number>(1);
-  const [gstRate, setGstRate] = useState<number>(12);
+  const [gstRate, setGstRate] = useState<number>(5);
   
  useEffect(() => {
     if (selectedStock) {
@@ -354,7 +354,7 @@ useEffect(() => {
   setPrevious(0);
   setSelectedStock(null);
   setQuantity(1);
-  setGstRate(12);
+  setGstRate(5);
   setCustomerID(null);
 
   // Clear reducer state
@@ -697,7 +697,7 @@ useEffect(() => {
   onChange={(e) => setGstRate(Number(e.target.value))}
   className="w-full rounded-md border-gray-300"
 >
-  {[0, 3, 5.31, 12, 18, 28].map((gst) => (
+  {[0, 3, 5, 12, 18, 28].map((gst) => (
     <option key={gst} value={gst}>
       {gst}%
     </option>
@@ -778,7 +778,7 @@ useEffect(() => {
                   <SelectValue placeholder="GST %" />
                 </SelectTrigger>
                 <SelectContent>
-                  {[0, 3, 5.31, 12, 18, 28].map((rate) => (
+                  {[0, 3, 5, 12, 18, 28].map((rate) => (
                     <SelectItem key={rate} value={String(rate)}>
                       {rate}%
                     </SelectItem>
@@ -855,7 +855,7 @@ useEffect(() => {
               <SelectValue placeholder="GST %" />
             </SelectTrigger>
             <SelectContent>
-              {[0, 3, 5.31, 12, 18, 28].map((rate) => (
+              {[0, 3, 5, 12, 18, 28].map((rate) => (
                 <SelectItem key={rate} value={String(rate)}>
                   {rate}%
                 </SelectItem>
