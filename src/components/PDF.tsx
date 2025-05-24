@@ -262,7 +262,7 @@ const InvoicePDF = ({
               </View>
             </View>
 
-            {/* Totals */}
+               {/* Totals Section */}
             <View style={styles.totals}>
               <View style={styles.totalsRight}>
                 <View
@@ -288,14 +288,36 @@ const InvoicePDF = ({
                   }}
                 >
                   <Text style={{ fontWeight: "bold" }}>Total Amt.:</Text>
-                  <Text style={{ fontWeight: "bold" }}>
-                    ₹{Grandtotal.toFixed(2)}
-                  </Text>
+                  <Text style={{ fontWeight: "bold" }}>₹{Grandtotal.toFixed(2)}</Text>
                 </View>
 
-                {/* Show paid/balance if real customer */}
-                {isRealCustomer && (
-                  <>
+                {/* Show Paid & Balance ONLY for real customers if paidAmount > 0 and less than Grandtotal */}
+                {isRealCustomer ? (
+                  paidAmount > 0 && paidAmount < Grandtotal ? (
+                    <>
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <Text>Paid Amt.:</Text>
+                        <Text>₹{paidAmount.toFixed(2)}</Text>
+                      </View>
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <Text>Balance Due:</Text>
+                        <Text>
+                          ₹{balanceDue !== null ? balanceDue.toFixed(2) : "0.00"}
+                        </Text>
+                      </View>
+                    </>
+                  ) : paidAmount >= Grandtotal ? (
+                    // If paidAmount equals or more than Grandtotal, show only paid amount
                     <View
                       style={{
                         flexDirection: "row",
@@ -305,21 +327,22 @@ const InvoicePDF = ({
                       <Text>Paid Amt.:</Text>
                       <Text>₹{paidAmount.toFixed(2)}</Text>
                     </View>
-                    {paidAmount < Grandtotal && (
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          justifyContent: "space-between",
-                          marginTop: 4,
-                        }}
-                      >
-                        <Text style={{ fontWeight: "bold" }}>Balance Due:</Text>
-                        <Text style={{ fontWeight: "bold" }}>
-                          ₹{(Grandtotal - paidAmount).toFixed(2)}
-                        </Text>
-                      </View>
-                    )}
-                  </>
+                  ) : (
+                    // paidAmount === 0 for real customers: show only payment status, no paid or balance
+                    <></>
+                  )
+                ) : (
+                  // For NA customer and mobile no 0000000000: always show payment status paid, no paid or balance
+                  <></>
+                )}
+
+                {/* Payment Status for NA / 0000000000 customers */}
+                {!isRealCustomer && (
+                  <View style={{ marginTop: 6 }}>
+                    <Text>
+                      <Text style={styles.label}>Payment Status: </Text>paid
+                    </Text>
+                  </View>
                 )}
               </View>
             </View>
