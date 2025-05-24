@@ -162,8 +162,6 @@ const InvoicePDF = ({
   items,
   Grandtotal,
   gstTotal,
-  paidAmount,
-  balanceDue,
   paymentStatus,
 }: InvoicePDFProps) => {
   const styles = getStyles(pageSize);
@@ -325,7 +323,7 @@ const InvoicePDF = ({
                   </Text>
                 </View>
 
-                {customerName !== "NA" && mobileNo !== "0000000000" && (
+                {/* {customerName !== "NA" && mobileNo !== "0000000000" && (
                   <>
                     <View
                       style={{
@@ -358,7 +356,7 @@ const InvoicePDF = ({
                       </Text>
                     </View>
                   </>
-                )}
+                )} */}
               </View>
             </View>
               </View>
