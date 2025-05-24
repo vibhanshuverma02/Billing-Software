@@ -131,6 +131,7 @@ const Test = () => {
  // ✅ Combined customer details state
  const [state, dispatch] = useReducer(reducer, initialState);
  
+const lastEditedRef = useRef<{ row: number; col: 'quantity' | 'rate' | 'gst' } | null>(null);
 
   // ✅ useRef for debouncing
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
@@ -310,7 +311,15 @@ useEffect(() => {
   form.setValue("paidAmount", paidamount);
 }, [paidamount, form]);
 
-  
+ useEffect(() => {
+  if (lastEditedRef.current) {
+    const { row, col } = lastEditedRef.current;
+    const el = inputRefs.current[row]?.[col];
+    if (el) el.focus();
+  }
+}, [fields]);
+
+
   // ✅ Correct: Remove calculateTotals from dependencies to avoid infinite loop
   useEffect(() => {
     calculateTotals();
@@ -352,8 +361,9 @@ useEffect(() => {
     SuperTotal: 0,
     Refund: 0,
     items: [],
+    
   });
-
+ lastEditedRef.current = null;
   setInvoiceNo("");
   setDate("");
   setIsAnonymous(false);
@@ -532,6 +542,60 @@ useEffect(() => {
   } catch (error) {
     console.error("Error generating PDF:", error);
     alert("Failed to generate PDF: " + (error as Error).message);
+  }
+};
+const inputRefs = useRef<Array<{
+  quantity?: HTMLInputElement | null;
+  rate?: HTMLInputElement | null;
+  gst?: HTMLButtonElement | null;
+}>>([]);
+
+const handleKeyDown = (
+  e: React.KeyboardEvent,
+  row: number,
+  col: 'quantity' | 'rate' | 'gst'
+) => {
+  const moveFocus = (nextRow: number, nextCol: 'quantity' | 'rate' | 'gst') => {
+    inputRefs.current[nextRow]?.[nextCol]?.focus();
+  };
+
+  const lastRow = fields.length - 1;
+
+  switch (e.key) {
+    case "ArrowDown":
+      if (row < lastRow) {
+        moveFocus(row + 1, col);
+        e.preventDefault();
+      }
+      break;
+    case "ArrowUp":
+      if (row > 0) {
+        moveFocus(row - 1, col);
+        e.preventDefault();
+      }
+      break;
+    case "ArrowRight":
+      if (col === "quantity") moveFocus(row, "rate");
+      else if (col === "rate") moveFocus(row, "gst");
+      e.preventDefault();
+      break;
+    case "ArrowLeft":
+      if (col === "gst") moveFocus(row, "rate");
+      else if (col === "rate") moveFocus(row, "quantity");
+      e.preventDefault();
+      break;
+    case "Tab":
+      if (e.shiftKey) {
+        if (col === "gst") moveFocus(row, "rate");
+        else if (col === "rate") moveFocus(row, "quantity");
+        else if (col === "quantity" && row > 0) moveFocus(row - 1, "gst");
+      } else {
+        if (col === "quantity") moveFocus(row, "rate");
+        else if (col === "rate") moveFocus(row, "gst");
+        else if (col === "gst" && row < lastRow) moveFocus(row + 1, "quantity");
+      }
+      e.preventDefault();
+      break;
   }
 };
   return (
@@ -734,47 +798,83 @@ useEffect(() => {
       <TableRow key={item.id}>
         <TableCell>{item.itemName}</TableCell>
         <TableCell>{item.hsn}</TableCell>
+      <TableCell>
+  <DebouncedInput
+  type="number"
+  value={item.quantity}
+  onDebouncedChange={(value) => {
+    update(index, { ...item, quantity: value });
+    lastEditedRef.current = { row: index, col: 'quantity' };
+  }}
+  onTotalCalculate={calculateTotals}
+  onKeyDown={(e) => handleKeyDown(e, index, 'quantity')}
+  ref={(el) => {
+    if (!inputRefs.current[index]) {
+      inputRefs.current[index] = { quantity: null, rate: null, gst: null };
+    }
+    inputRefs.current[index].quantity = el;
+  }}
+/>
+
+</TableCell>
+
+<TableCell>
+  <div className="flex flex-col">
+    <span className="text-sm text-gray-500">
+      ₹{Math.round(item.rate / (1 + item.gstRate / 100))} (Excl. GST)
+    </span>
+   <DebouncedInput
+  type="number"
+  value={item.rate}
+  onDebouncedChange={(value) => {
+    update(index, { ...item, rate: value });
+    lastEditedRef.current = { row: index, col: 'rate' };
+  }}
+  onTotalCalculate={calculateTotals}
+  onKeyDown={(e) => handleKeyDown(e, index, 'rate')}
+  ref={(el) => {
+    if (!inputRefs.current[index]) {
+      inputRefs.current[index] = { quantity: null, rate: null, gst: null };
+    }
+    inputRefs.current[index].rate = el;
+  }}
+/>
+
+  </div>
+</TableCell>
+
         <TableCell>
-          <DebouncedInput
-            type="number"
-            value={item.quantity}
-            onDebouncedChange={(value) => update(index, { ...item, quantity: value })}
-            onTotalCalculate={calculateTotals}
-          />
-        </TableCell>
-        <TableCell>
-          <div className="flex flex-col">
-            <span className="text-sm text-gray-500">
-              ₹{Math.round(item.rate / (1 + item.gstRate / 100))} (Excl. GST)
-            </span>
-            <DebouncedInput
-              type="number"
-              value={item.rate}
-              onDebouncedChange={(value) => update(index, { ...item, rate: value })}
-              onTotalCalculate={calculateTotals}
-              className="mt-1"
-            />
-          </div>
-        </TableCell>
-        <TableCell>
-          <Select
-            value={String(item.gstRate)}
-            onValueChange={(value) => {
-              update(index, { ...item, gstRate: Number(value) });
-              calculateTotals();
-            }}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="GST %" />
-            </SelectTrigger>
-            <SelectContent>
-              {[0, 3, 5, 12, 18, 28].map((rate) => (
-                <SelectItem key={rate} value={String(rate)}>
-                  {rate}%
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+  <Select
+  value={String(item.gstRate)}
+ onValueChange={(value) => {
+  update(index, { ...item, gstRate: Number(value) });
+  calculateTotals();
+  lastEditedRef.current = { row: index, col: 'gst' };
+}}
+
+>
+  <SelectTrigger
+   ref={(el) => {
+  if (!inputRefs.current[index]) {
+    inputRefs.current[index] = { quantity: null, rate: null, gst: null };
+  }
+  inputRefs.current[index].gst = el;
+}}
+
+    onKeyDown={(e) => handleKeyDown(e, index, 'gst')}
+  >
+    <SelectValue placeholder="GST %" />
+  </SelectTrigger>
+  <SelectContent>
+    {[0, 3, 5, 12, 18, 28].map((rate) => (
+      <SelectItem key={rate} value={String(rate)}>
+        {rate}%
+      </SelectItem>
+    ))}
+  </SelectContent>
+</Select>
+
+
         </TableCell>
         <TableCell>
           ₹{Math.round(item.rate * item.quantity)}
