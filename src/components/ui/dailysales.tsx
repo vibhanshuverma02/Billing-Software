@@ -20,7 +20,13 @@ type AnalyticsResponse = {
   startDate: string;
   endDate: string;
   dailySales: Record<string, number>;
+  invoicesBySalesperson: {
+    invoiceDate: string;
+    salesperson: string;
+    count: number;
+  }[];
 };
+
 
 type ChartDataPoint = {
   date: string;
@@ -138,20 +144,7 @@ const AnalyticsChart: React.FC = () => {
           </>
         )}
 
-        {/* <button
-          style={{
-            marginLeft: 12,
-            backgroundColor: darkMode ? '#333' : '#eee',
-            color: darkMode ? '#fff' : '#000',
-            padding: '0.5rem 1rem',
-            borderRadius: '0.5rem',
-            border: 'none',
-            cursor: 'pointer'
-          }}
-          onClick={() => setDarkMode(!darkMode)}
-        >
-          Toggle {darkMode ? 'Light' : 'Dark'} Mode
-        </button> */}
+       
       </div>
 
       {loading && <p>Loading...</p>}
@@ -164,11 +157,44 @@ const AnalyticsChart: React.FC = () => {
          
           marginBottom: '2rem'
         }}>
-          <div style={{ marginBottom: '1rem' }} className='text-black'>
-            <strong>This week Sales :</strong> {formatINR(data.totalSales)} |{' '}
-        
-            <strong>Invoices:</strong> {data.invoiceCount}
-          </div>
+         <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', marginBottom: '2rem' }}>
+  {/* Sales summary */}
+  <div style={{ flex: 1, minWidth: '250px', color: 'black' }}>
+    <strong>This week Sales :</strong> {formatINR(data.totalSales)} |{' '}
+    <strong>Invoices:</strong> {data.invoiceCount}
+  </div>
+
+  {/* Daily invoices per salesperson */}
+  {data.invoicesBySalesperson && data.invoicesBySalesperson.length > 0 && (
+    <div style={{ flex: 2, minWidth: '350px', color: 'black' }}>
+      <h3 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '0.5rem' }}>
+        Daily Invoices Per Salesperson
+      </h3>
+      {Object.entries(
+        data.invoicesBySalesperson.reduce<Record<string, { salesperson: string; count: number }[]>>(
+          (acc, curr) => {
+            if (!acc[curr.invoiceDate]) acc[curr.invoiceDate] = [];
+            acc[curr.invoiceDate].push({ salesperson: curr.salesperson, count: curr.count });
+            return acc;
+          },
+          {}
+        )
+      ).map(([date, entries]) => (
+        <div key={date} style={{ marginBottom: '0.75rem' }}>
+          <strong>{format(parseISO(date), 'MMM d, yyyy')}:</strong>
+          <ul style={{ paddingLeft: '1rem' }}>
+            {entries.map((entry, idx) => (
+              <li key={idx}>
+                {entry.salesperson || 'Unknown'}: {entry.count} invoice{entry.count > 1 ? 's' : ''}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  )}
+</div>
+
 
           <ResponsiveContainer width="100%" height={350}>
             <BarChart
@@ -188,7 +214,9 @@ const AnalyticsChart: React.FC = () => {
               <Tooltip content={<CustomTooltip />} />
               <Bar dataKey="sales" fill="#ff9800" radius={[6, 6, 0, 0]} />
             </BarChart>
+            
           </ResponsiveContainer>
+          
         </div>
       )}
 

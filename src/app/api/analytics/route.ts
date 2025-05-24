@@ -104,13 +104,40 @@ export async function GET(req: NextRequest) {
       dailySales[record.date] = Number(record.total);
     }
 
-    return NextResponse.json({
-      totalSales: aggregateResult._sum.totalAmount || 0,
-      invoiceCount: aggregateResult._count._all || 0,
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
-      dailySales,
-    });
+    // Group by date + salesperson
+const invoicesBySalesperson = await prisma.invoice.groupBy({
+  by: ['invoiceDate', 'sellesperson'],
+  _count: {
+    id: true,
+  },
+  where: {
+    username,
+    invoiceDate: {
+      gte: startDate,
+      lte: endDate,
+    },
+  },
+  orderBy: {
+    invoiceDate: 'asc',
+  },
+});
+
+// Format results to string dates
+const formattedInvoicesBySalesperson = invoicesBySalesperson.map((entry) => ({
+  invoiceDate: format(entry.invoiceDate, 'yyyy-MM-dd'),
+  salesperson: entry.sellesperson,
+  count: entry._count.id,
+}));
+
+return NextResponse.json({
+  totalSales: aggregateResult._sum.totalAmount || 0,
+  invoiceCount: aggregateResult._count._all || 0,
+  startDate: startDate.toISOString(),
+  endDate: endDate.toISOString(),
+  dailySales,
+  invoicesBySalesperson: formattedInvoicesBySalesperson, // 👈 added here
+});
+
   } catch (error) {
     console.error('Analytics error:', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });

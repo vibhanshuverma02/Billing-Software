@@ -1,6 +1,8 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
 }
+
 
 datasource db {
   provider  = "postgresql"
@@ -61,6 +63,7 @@ model Invoice {
   paymentStatus String   @default("Due") // Payment status: Due, Partial, Paid
   refund        Float    @default(0.0) // refund money
   invoiceDate   DateTime @default(now()) // Invoice creation date
+  sellesperson  String 
   pdfUrl        Bytes? // ✅ PDF URL field
 
   customer Customer @relation(fields: [customerId], references: [id])

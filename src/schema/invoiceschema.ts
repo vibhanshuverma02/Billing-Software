@@ -8,7 +8,7 @@ import { z } from 'zod';
     username: z.string().min(1, "Username is required"),
     customerName: z.string().min(1, "Customer name is required"),
     mobileNo: z.string().min(10, "Mobile number must be at least 10 digits"),
-    address: z.string().optional(),
+    salesperson: z.string().optional(),
   
     Grandtotal: z.coerce.number().positive("Total amount must be positive"),
     // gstTotal:z.coerce.number(),

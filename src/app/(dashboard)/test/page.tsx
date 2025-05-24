@@ -17,7 +17,6 @@ import { Form, FormItem, FormLabel} from "@/components/ui/form";
 import { toast } from "sonner";
 import axios, { AxiosError } from "axios";
 import { useState, useEffect,  useReducer, useRef, useCallback } from "react";
-import { Textarea } from "@/components/ui/textarea";
 import StockSelect from "@/components/ui/stockselection";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { DebouncedInput } from "@/components/ui/debounced";
@@ -28,6 +27,7 @@ import { ApiResponse } from "@/type/ApiResponse";
 import { useDebounceCallback } from "usehooks-ts";
 import { useSearchParams } from "next/navigation";
 import ScannerPage from "@/components/ui/barcordscanner";
+
 
 type InvoiceFormData = z.infer<typeof invoiceschema>& {
   items: z.infer<typeof stockSchema>["items"];
@@ -43,10 +43,15 @@ interface StockItem {
 
 
 interface State {
+  sellesperson: string
   customername: string;
   customermobileNo: string;
   customerdetialsMessage: string;
   isCheckingCustomer: boolean;
+} 
+interface Setseller{
+  type: "SET_SELLER";
+  payload:string;
 }
 interface SetNameAction {
   type: "SET_NAME";
@@ -70,10 +75,11 @@ interface ToggleLoadingAction {
 interface ResetFormAction {
   type: "RESET_FORM";
 }
-type Action = SetNameAction | SetMobileAction | SetMessageAction | ToggleLoadingAction | ResetFormAction;;
+type Action =Setseller| SetNameAction | SetMobileAction | SetMessageAction | ToggleLoadingAction | ResetFormAction;;
 const initialState = {
+  sellesperson: "",
   customername: "",
-  customermobileNo: "",
+  customermobileNo: "0000000000",
   customerdetialsMessage: "",
   isCheckingCustomer: false,
 };
@@ -82,6 +88,8 @@ const initialState = {
 
 const reducer = (state:State, action:Action) => {
   switch (action.type) {
+    case"SET_SELLER":
+    return { ...state,   sellesperson: action.payload}
     case "SET_NAME":
       return { ...state, customername: action.payload };
     case "SET_MOBILE":
@@ -101,9 +109,11 @@ const reducer = (state:State, action:Action) => {
 };
 const Test = () => {
   const { data: session, status } = useSession();  // ✅ Fetch session
-    const [isOpen, setIsOpen] = useState(false);
+
  const [username, setUsername] = useState<string | null>(null);
  const [customerID, setCustomerID]=useState<string|null>(null);
+ const [employeeList, setEmployeeList] = useState<string[]>([]);
+
   const [invoiceNo, setInvoiceNo] = useState<string>("");
   const [date, setDate] = useState<string>("");
   const [gstTotal, setGstTotal] = useState<number>(0);
@@ -114,6 +124,7 @@ const Test = () => {
   const [paidamount,  setPaidamount] = useState<number>(0);
   const [refund, setRefund] = useState(0);
   const [isAnonymous, setIsAnonymous] = useState(false);
+
 
   // const[invoiceId , setInvoiceID]= useState<number>(0);
   
@@ -150,6 +161,8 @@ const fetchCustomer = useCallback(async () => {
       params: {
         customerName: state.customername,
         customermobileNo: state.customermobileNo,
+       
+           
       },
     });
 
@@ -180,7 +193,11 @@ useEffect(() => {
   const name = state.customername.trim();
   const mobile = state.customermobileNo.trim();
 
-  if (isAnonymous) return;
+  const isHardAnonymous = name === "NA" && mobile === "0000000000";
+  const isPartialAnonymous = name !== "NA" && mobile === "0000000000";
+
+  // 🛑 Skip fetch if anonymous or partial-anonymous case
+  if (isHardAnonymous || isPartialAnonymous) return;
 
   // ✅ Clear message when both fields are empty
   if (!name && !mobile) {
@@ -192,7 +209,8 @@ useEffect(() => {
   if (/^\d{10}$/.test(mobile)) {
     debouncedFetch(fetchCustomer, 500);
   }
-}, [state.customername, state.customermobileNo, isAnonymous, debouncedFetch, fetchCustomer]);
+}, [state.customername, state.customermobileNo, debouncedFetch, fetchCustomer]);
+
 
 // ✅ Prefill customer info from URL params
 const searchParams = useSearchParams();
@@ -200,7 +218,7 @@ const searchParams = useSearchParams();
 useEffect(() => {
   const nameFromURL = searchParams.get("customerName");
   const mobileFromURL = searchParams.get("mobileNo");
-
+  const  sellespersonurl = searchParams.get("salesperson");
   if (nameFromURL) {
     dispatch({ type: "SET_NAME", payload: nameFromURL });
   }
@@ -208,41 +226,52 @@ useEffect(() => {
   if (mobileFromURL) {
     dispatch({ type: "SET_MOBILE", payload: mobileFromURL });
   }
+  console.log( sellespersonurl)
+  if (sellespersonurl){
+    dispatch({type: "SET_SELLER",payload: sellespersonurl});
+  }
 }, [searchParams]);
 
 
   const form = useForm<InvoiceFormData>({
-    resolver: zodResolver(
-      invoiceschema.merge(
-        z.object({
-          items: stockSchema.shape.items
-        })
-      )
-    ),
-    defaultValues: {
-      username: username || " ",
-      customerName: "",
-      mobileNo: "",
-      address: "",
-      paidAmount: 0,
-      previous:0,
-      Grandtotal: 0,
-      SuperTotal: 0,
-      Refund:0,
-      items: []
-    },
-  });
+  resolver: zodResolver(
+    invoiceschema.merge(
+      z.object({
+        items: stockSchema.shape.items,
+      })
+    )
+  ),
+  defaultValues: {
+    username: username || " ",
+    customerName: "",
+    mobileNo: "0000000000", // ✅ Set default here
+    salesperson: "",
+    paidAmount: 0,
+    previous: 0,
+    Grandtotal: 0,
+    SuperTotal: 0,
+    Refund: 0,
+    items: [],
+  },
+});
+
   // 
     const { fields, append, remove, update } = useFieldArray({
     control: form.control,
     name: "items",
   });
   useEffect(() => {
+  if (state.customername) {
     form.setValue("customerName", state.customername);
+  }
+
+  if (state.customermobileNo && state.customermobileNo !== "0000000000") {
     form.setValue("mobileNo", state.customermobileNo);
-    
-  }, [state.customername, state.customermobileNo , form]);
-  
+  }
+  if(state.sellesperson){
+  form.setValue("salesperson", state.sellesperson);}
+}, [state.customername, state.customermobileNo,  state.sellesperson, form]);
+
   
 
   // Debounced Calculation Function
@@ -287,45 +316,27 @@ useEffect(() => {
     calculateTotals();
   }, [paidamount, fields, previous,calculateTotals]);
   
-  const [selectedStock, setSelectedStock] = useState<InvoiceFormData["items"][number] |  null>(null);
-  const [quantity, setQuantity] = useState<number>(1);
-  const [gstRate, setGstRate] = useState<number>(5);
   
- useEffect(() => {
-    if (selectedStock) {
-      setIsOpen(true);
-    } else {
-      setIsOpen(false); // Optional: close if no selection
-    }
-  }, [selectedStock]);
+
 
   // ✅ Add Item to Invoice Table
-  const addItem = (item?: StockItem) => {
-    const stock = item || selectedStock;
-  
-    if (!stock) {
-      toast.error("Please select a product!");
-      return;
-    }
-  
-    const finalQuantity = item?.quantity ?? quantity;
-    const finalGstRate = item?.gstRate ?? gstRate;
-  
-    append({
-      itemName: stock.itemName,
-      hsn: stock.hsn,
-      rate: stock.rate,
-      quantity: finalQuantity,
-      gstRate: finalGstRate,
-    });
-  
-    // Reset only if added from manual selection
-    if (!item) {
-      setSelectedStock(null);
-      setQuantity(1);
-      setGstRate(3);
-    }
-  };
+  const addItem = (stock: StockItem) => {
+  if (!stock) {
+    toast.error("Please select a product!");
+    return;
+  }
+
+  append({
+    itemName: stock.itemName,
+    hsn: stock.hsn,
+    rate: stock.rate,
+    quantity: 1,       // Default quantity
+    gstRate: 5,        // Default GST rate
+  });
+
+  toast.success(`${stock.itemName} added to invoice.`);
+};
+
   
 
   // // ✅ Clear Form
@@ -333,8 +344,8 @@ useEffect(() => {
   form.reset({
     username: username || " ",
     customerName: "",
-    mobileNo: "",
-    address: "",
+    mobileNo: "0000000000",
+    salesperson: "",
     paidAmount: 0,
     previous: 0,
     Grandtotal: 0,
@@ -352,16 +363,38 @@ useEffect(() => {
   setPaidamount(0);
   setRefund(0);
   setPrevious(0);
-  setSelectedStock(null);
-  setQuantity(1);
-  setGstRate(5);
+  // setSelectedStock(null);
+  // setQuantity(1);
+  // setGstRate(5);
   setCustomerID(null);
 
   // Clear reducer state
   dispatch({ type: "RESET_FORM" }); // 👈 Create this case in your reducer to reset `customername`, `customermobileNo`, etc.
 };
 
-  
+ useEffect(() => {
+  const fetchEmployees = async () => {
+    try {
+      const res = await axios.get("/api/getall");
+
+      // ✅ res.data is the array directly
+      if (Array.isArray(res.data)) {
+        const names = res.data.map((emp) => emp.name); // or use `username` if you prefer
+        setEmployeeList(names);
+      } else {
+        throw new Error("Invalid employee list format");
+      }
+    } catch (error) {
+      console.error("Failed to fetch employees", error);
+      toast.error("Unable to load salespeople.");
+      setEmployeeList([]);
+    }
+  };
+
+  fetchEmployees();
+}, []);
+
+
 
   const onSubmit = async () => {
     // form.setValue("customerName", state.customername);
@@ -462,7 +495,7 @@ useEffect(() => {
         date={date}
         customerName={state.customername}
         mobileNo={state.customermobileNo}
-        address={form.getValues("address") || "NA"}
+        salesperson={state.sellesperson}
         items={fields.length > 0 ? fields : [{ itemName: "N/A", hsn: "0000", rate: 0, quantity: 0, gstRate: 0 }]}
         Grandtotal= {grandTotal}
         gstTotal={ gstTotal}
@@ -552,7 +585,7 @@ useEffect(() => {
         dispatch({ type: "SET_MOBILE", payload: "0000000000" });
       } else {
         dispatch({ type: "SET_NAME", payload: "" });
-        dispatch({ type: "SET_MOBILE", payload: "" });
+        dispatch({ type: "SET_MOBILE", payload: "0000000000" });
       }
     }}
     id="anonymousToggle"
@@ -617,109 +650,67 @@ useEffect(() => {
     )}
   </div>
 
-  <Controller
-    name="address"
-    control={form.control}
-    render={({ field }) => (
-      <FormItem className="col-span-1 md:col-span-2">
-        <FormLabel>Customer Address</FormLabel>
-        <Textarea placeholder="Enter customer address" {...field} className="w-full" />
-      </FormItem>
-    )}
-  />
-</div>
-
-{/* Stock Selection */}
-<div className="flex flex-col gap-4 mb-6">
-  {/* Scanner and Stock Select stacked vertically */}
- <div className="flex items-center space-x-4 mb-4">
-  <div className="flex-1">
-    <ScannerPage onSelect={(item) => append(item)} />
-  </div>
-
-  <div className="px-2">
-    <span className="text-gray-500 font-semibold select-none block py-2">OR</span>
-  </div>
-
-  <div className="flex-1 ml-6">
-    <StockSelect onSelect={(stock) => setSelectedStock(stock)} />
-  </div>
-</div>
-
-
-  {/* Collapsible Selected Product */}
-  <div
-    className="border rounded-md p-4 cursor-pointer select-none"
-    onClick={() => setIsOpen(!isOpen)}
-  >
-    {/* Header: always visible */}
-    <div className="flex justify-between items-center">
-      <p className="text-lg font-medium">
-        Selected Product:{" "}
-        <span className="text-blue-600">
-          {selectedStock?.itemName || "No product selected"}
-        </span>
-      </p>
-      <button
-        className="text-blue-600 font-bold"
-        onClick={(e) => {
-          e.stopPropagation();
-          setIsOpen(!isOpen);
+ <Controller
+  name="salesperson"
+  control={form.control}
+  render={({ field }) => (
+    <FormItem className="col-span-1 md:col-span-2">
+      <FormLabel>Salesperson</FormLabel>
+      <Select
+        value={state.sellesperson}
+        onValueChange={(value) => {
+          dispatch({ type: "SET_SELLER", payload: value });
+          field.onChange(value); // update react-hook-form as well
         }}
-        aria-label={isOpen ? "Collapse" : "Expand"}
       >
-        {isOpen ? "▲" : "▼"}
-      </button>
-    </div>
+        <SelectTrigger className="max-w-xs">
+          <SelectValue placeholder="Select Salesperson" />
+        </SelectTrigger>
+      <SelectContent>
+  {employeeList.length > 0 ? (
+    employeeList.map((name) => (
+      <SelectItem key={name} value={name}>
+        {name}
+      </SelectItem>
+    ))
+  ) : (
+    <SelectItem value="none" disabled>
+      No employees found
+    </SelectItem>
+  )}
+</SelectContent>
 
-    {/* Collapsible content: Quantity, GST, Add button */}
-    {isOpen && (
-      <div className="mt-4 flex flex-col md:flex-row md:items-center gap-4">
-        <FormItem className="w-full md:w-32">
-          <FormLabel>Quantity</FormLabel>
-          <Input
-  type="number"
-  value={quantity}
-  min={0}
-  onClick={(e) => e.stopPropagation()}
-  onChange={(e) => setQuantity(Number(e.target.value))}
-  className="w-full"
-  placeholder="Qty"
+      </Select>
+    </FormItem>
+  )}
 />
 
-        </FormItem>
 
-        <FormItem className="w-full md:w-32">
-          <FormLabel>GST %</FormLabel>
-          <select
-  value={gstRate}
-  onClick={(e) => e.stopPropagation()}
-  onChange={(e) => setGstRate(Number(e.target.value))}
-  className="w-full rounded-md border-gray-300"
->
-  {[0, 3, 5, 12, 18, 28].map((gst) => (
-    <option key={gst} value={gst}>
-      {gst}%
-    </option>
-  ))}
-</select>
+</div>
+{/* Stock Selection */}
+<div className="flex flex-col gap-4 mb-6">
+  <div className="flex flex-col md:flex-row items-center md:space-x-4 space-y-4 md:space-y-0">
+    {/* Scanner */}
+    <div className="w-full md:flex-1">
+      <ScannerPage onSelect={(item) => append(item)} />
+    </div>
 
-        </FormItem>
+    {/* OR separator */}
+    <div className="text-center md:px-2">
+      <span className="text-gray-500 font-semibold select-none">OR</span>
+    </div>
 
-        <Button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            addItem();
-          }}
-          className="bg-blue-600 text-white w-full md:w-auto self-stretch md:self-auto px-6 py-2 rounded-md"
-        >
-          Add Item
-        </Button>
-      </div>
-    )}
+    {/* Stock Select */}
+    <div className="w-full md:flex-1">
+      <StockSelect
+        onSelect={(stock) => {
+          addItem(stock);
+        }}
+      />
+    </div>
   </div>
 </div>
+
 
 
             {/* Invoice Table */}
@@ -727,123 +718,45 @@ useEffect(() => {
   <div className="hidden md:block">
     {/* Desktop Table */}
     <Table className="min-w-full">
-      <TableHeader>
-        <TableRow>
-          <TableHead>Product</TableHead>
-          <TableHead>HSN</TableHead>
-          <TableHead>Qty</TableHead>
-          <TableHead>Rate</TableHead>
-          <TableHead>GST %</TableHead>
-          <TableHead>Total</TableHead>
-          <TableHead>Action</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {fields.map((item, index) => (
-          <TableRow key={item.id}>
-            <TableCell>{item.itemName}</TableCell>
-            <TableCell>{item.hsn}</TableCell>
-            <TableCell>
-              <DebouncedInput
-                type="number"
-                value={item.quantity}
-                onDebouncedChange={(value) => update(index, { ...item, quantity: value })}
-                onTotalCalculate={calculateTotals}
-              />
-            </TableCell>
-           <TableCell>
-  <div className="flex flex-col">
-    <span className="text-sm text-gray-500">
-      ₹{(item.rate / (1 + item.gstRate / 100)).toFixed(2)} (Excl. GST)
-    </span>
-    <DebouncedInput
-      type="number"
-      value={item.rate}
-      onDebouncedChange={(value) => update(index, { ...item, rate: value })}
-      onTotalCalculate={calculateTotals}
-      className="mt-1"
-    />
-  </div>
-</TableCell>
-
-            <TableCell>
-              <Select
-                value={String(item.gstRate)}
-                onValueChange={(value) => {
-                  update(index, { ...item, gstRate: Number(value) });
-                  calculateTotals();
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="GST %" />
-                </SelectTrigger>
-                <SelectContent>
-                  {[0, 3, 5, 12, 18, 28].map((rate) => (
-                    <SelectItem key={rate} value={String(rate)}>
-                      {rate}%
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </TableCell>
-            <TableCell>
-              ₹{(item.rate * item.quantity).toFixed(2)}
-            </TableCell>
-            <TableCell>
-              <Button variant="destructive" onClick={() => remove(index)}>
-                <Trash2 />
-              </Button>
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  </div>
-
-  {/* Mobile view: cards / stacked layout */}
-  <div className="block md:hidden space-y-4">
+  <TableHeader>
+    <TableRow>
+      <TableHead>Product</TableHead>
+      <TableHead>HSN</TableHead>
+      <TableHead>Qty</TableHead>
+      <TableHead>Rate</TableHead>
+      <TableHead>GST %</TableHead>
+      <TableHead>Total</TableHead>
+      <TableHead>Action</TableHead>
+    </TableRow>
+  </TableHeader>
+  <TableBody>
     {fields.map((item, index) => (
-      <div key={item.id} className="p-4 border rounded-md shadow-sm">
-        <div className="flex justify-between mb-2">
-          <span className="font-semibold">Product:</span>
-          <span>{item.itemName}</span>
-        </div>
-
-        <div className="flex justify-between mb-2">
-          <span className="font-semibold">HSN:</span>
-          <span>{item.hsn}</span>
-        </div>
-
-        <div className="flex justify-between items-center mb-2">
-          <span className="font-semibold">Qty:</span>
+      <TableRow key={item.id}>
+        <TableCell>{item.itemName}</TableCell>
+        <TableCell>{item.hsn}</TableCell>
+        <TableCell>
           <DebouncedInput
             type="number"
             value={item.quantity}
             onDebouncedChange={(value) => update(index, { ...item, quantity: value })}
             onTotalCalculate={calculateTotals}
-            className="w-20"
           />
-        </div>
-
-       <div className="flex justify-between items-start mb-2">
-  <span className="font-semibold">Rate:</span>
-  <div className="flex flex-col items-end">
-    <span className="text-sm text-gray-500">
-      ₹{(item.rate / (1 + item.gstRate / 100)).toFixed(2)} (Excl. GST)
-    </span>
-    <DebouncedInput
-      type="number"
-      value={item.rate}
-      onDebouncedChange={(value) => update(index, { ...item, rate: value })}
-      onTotalCalculate={calculateTotals}
-      className="w-24 mt-1"
-    />
-  </div>
-</div>
-
-
-        <div className="flex justify-between items-center mb-2">
-          <span className="font-semibold">GST %:</span>
+        </TableCell>
+        <TableCell>
+          <div className="flex flex-col">
+            <span className="text-sm text-gray-500">
+              ₹{Math.round(item.rate / (1 + item.gstRate / 100))} (Excl. GST)
+            </span>
+            <DebouncedInput
+              type="number"
+              value={item.rate}
+              onDebouncedChange={(value) => update(index, { ...item, rate: value })}
+              onTotalCalculate={calculateTotals}
+              className="mt-1"
+            />
+          </div>
+        </TableCell>
+        <TableCell>
           <Select
             value={String(item.gstRate)}
             onValueChange={(value) => {
@@ -862,38 +775,121 @@ useEffect(() => {
               ))}
             </SelectContent>
           </Select>
-        </div>
-
-        <div className="flex justify-between mb-2">
-          <span className="font-semibold">Total:</span>
-          <span>₹{(item.rate * item.quantity ).toFixed(2)}</span>
-        </div>
-
-        <div className="text-right">
+        </TableCell>
+        <TableCell>
+          ₹{Math.round(item.rate * item.quantity)}
+        </TableCell>
+        <TableCell>
           <Button variant="destructive" onClick={() => remove(index)}>
             <Trash2 />
           </Button>
+        </TableCell>
+      </TableRow>
+    ))}
+  </TableBody>
+</Table>
+
+  </div>
+
+  {/* Mobile view: cards / stacked layout */}
+ <div className="block md:hidden space-y-4">
+  {fields.map((item, index) => (
+    <div key={item.id} className="p-4 border rounded-md shadow-sm">
+      <div className="flex justify-between mb-2">
+        <span className="font-semibold">Product:</span>
+        <span>{item.itemName}</span>
+      </div>
+
+      <div className="flex justify-between mb-2">
+        <span className="font-semibold">HSN:</span>
+        <span>{item.hsn}</span>
+      </div>
+
+      <div className="flex justify-between items-center mb-2">
+        <span className="font-semibold">Qty:</span>
+        <DebouncedInput
+          type="number"
+          value={item.quantity}
+          onDebouncedChange={(value) => update(index, { ...item, quantity: value })}
+          onTotalCalculate={calculateTotals}
+          className="w-20"
+        />
+      </div>
+
+      <div className="flex justify-between items-start mb-2">
+        <span className="font-semibold">Rate:</span>
+        <div className="flex flex-col items-end">
+          <span className="text-sm text-gray-500">
+            ₹{Math.round(item.rate / (1 + item.gstRate / 100))} (Excl. GST)
+          </span>
+          <DebouncedInput
+            type="number"
+            value={item.rate}
+            onDebouncedChange={(value) => update(index, { ...item, rate: value })}
+            onTotalCalculate={calculateTotals}
+            className="w-24 mt-1"
+          />
         </div>
       </div>
-    ))}
-  </div>
+
+      <div className="flex justify-between items-center mb-2">
+        <span className="font-semibold">GST %:</span>
+        <Select
+          value={String(item.gstRate)}
+          onValueChange={(value) => {
+            update(index, { ...item, gstRate: Number(value) });
+            calculateTotals();
+          }}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="GST %" />
+          </SelectTrigger>
+          <SelectContent>
+            {[0, 3, 5, 12, 18, 28].map((rate) => (
+              <SelectItem key={rate} value={String(rate)}>
+                {rate}%
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="flex justify-between mb-2">
+        <span className="font-semibold">Total:</span>
+        <span>₹{Math.round(item.rate * item.quantity)}</span>
+      </div>
+
+      <div className="text-right">
+        <Button variant="destructive" onClick={() => remove(index)}>
+          <Trash2 />
+        </Button>
+      </div>
+    </div>
+  ))}
 </div>
 
-            {/* Payment Section */}
-          <div className="flex flex-col md:flex-row justify-end mt-8 gap-6">
-  <div className="text-lg font-bold text-right w-full md:max-w-md space-y-4">
-    {/* <p>Sub Total: ₹{fields.reduce((sum, item) => sum + item.rate * item.quantity, 0)}</p> */}
-    <p>item cost: ₹{form.getValues("Grandtotal").toFixed(2)}</p>
-    <p>GST: ₹{gstTotal}</p>
-    
+</div>
 
+{/* payment  */}<div className="flex flex-col md:flex-row justify-end mt-8 gap-6">
+  <div className="text-lg font-bold text-right w-full md:max-w-md space-y-4">
+    <p>Item Cost: ₹{form.getValues("Grandtotal").toFixed(0)}</p>
+    <p>GST: ₹{Math.round(gstTotal)}</p>
+
+    {/* Show Previous Balance above Grand Total for real customers */}
+    {!isAnonymous && previous > 0 && (
+      <p className="font-semibold">
+        Previous Balance: ₹{previous.toFixed(0)}
+      </p>
+    )}
+
+    {/* Always show Grand Total */}
     <div className="border p-3 rounded-lg">
-      <p className="font-semibold">Previous Balance: ₹{previous.toFixed(2)}</p>
       <p className="font-semibold text-red-600">
-        GrandTotal: ₹{form.getValues("SuperTotal").toFixed(2)}
+        Grand Total: ₹{form.getValues("SuperTotal").toFixed(0)}
       </p>
     </div>
 
+    {/* Paid Amount */}
     <div>
       <FormLabel>Paid Amount</FormLabel>
       <Input
@@ -904,32 +900,40 @@ useEffect(() => {
       />
     </div>
 
-    <div>
-      <p className="font-medium text-red-600">Balance Due:</p>
-      <Input
-        type="number"
-        value={balanceDue ?? 0}
-        disabled={isAnonymous}
-        readOnly
-        className="bg-gray-100 w-full"
-      />
-    </div>
+    {/* Show Balance Due & Payment Status for real customers */}
+    {!isAnonymous &&
+      paidamount < parseFloat(String(form.getValues("SuperTotal"))) && (
+        <>
+          <div>
+            <p className="font-medium text-red-600">Balance Due:</p>
+            <Input
+              type="number"
+              value={balanceDue ?? 0}
+              readOnly
+              className="bg-gray-100 w-full"
+            />
+          </div>
 
-    <div>
-      <FormLabel>Payment Status</FormLabel>
-      <Input
-        value={paymentStatus || "N/A"}
-        disabled={isAnonymous}
-        readOnly
-        className="bg-gray-100 w-full"
-      />
-    </div>
+          <div>
+            <FormLabel>Payment Status</FormLabel>
+            <Input
+              value={paymentStatus || "N/A"}
+              readOnly
+              className="bg-gray-100 w-full"
+            />
+          </div>
+        </>
+      )}
 
+    {/* Always show Return Amount */}
     <div>
-      <p className="font-semibold text-red-600">Return Amount: ₹{refund.toFixed(2)}</p>
+      <p className="font-semibold text-red-600">
+        Return Amount: ₹{refund.toFixed(0)}
+      </p>
     </div>
   </div>
 </div>
+
 
 <Button type="submit" className="w-full mt-6 py-3 md:max-w-md md:self-end" disabled={isSubmitting}>
   {isSubmitting ? (

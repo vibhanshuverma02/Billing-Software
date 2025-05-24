@@ -184,6 +184,7 @@ export async function POST(req: Request) {
       paidAmount,
       SuperTotal,
       Refund,
+    salesperson
     } = body;
 
     const parsedGrandtotal = parseFloat(Grandtotal);
@@ -204,30 +205,37 @@ export async function POST(req: Request) {
     }
 
     const username = session.user.username;
-    const isAnonymous = customerName === 'NA' && mobileNo === '0000000000';
+
+    // Any kind of anonymous (partial or full)
+    const isAnonymous =
+      customerName === 'NA' ||
+      mobileNo === '0000000000';
+
+    // Always use single dummy customer for anonymous
+    let walkInCustomer = await prisma.customer.findFirst({
+      where: {
+        username,
+        customerName: 'NA',
+        mobileNo: '0000000000',
+      },
+    });
+
+    if (!walkInCustomer) {
+      walkInCustomer = await prisma.customer.create({
+        data: {
+          username,
+          customerName: 'NA',
+          mobileNo: '0000000000',
+          address: '',
+          balance: 0,
+        },
+      });
+    }
 
     let customer = null;
 
     if (isAnonymous) {
-      customer = await prisma.customer.findFirst({
-        where: {
-          username,
-          customerName: 'NA',
-          mobileNo: '0000000000',
-        },
-      });
-
-      if (!customer) {
-        customer = await prisma.customer.create({
-          data: {
-            username,
-            customerName: 'NA',
-            mobileNo: '0000000000',
-            address: '',
-            balance: 0,
-          },
-        });
-      }
+      customer = walkInCustomer;
     } else {
       customer = await prisma.customer.findFirst({
         where: {
@@ -250,7 +258,7 @@ export async function POST(req: Request) {
 
     const invoiceUpdates = [];
 
-    // Apply paidAmount to previous unpaid invoices in FIFO order
+    // Only apply paidAmount to old dues if not anonymous
     if (!isAnonymous && parsedPaidAmount > 0) {
       const unpaidInvoices = await prisma.invoice.findMany({
         where: {
@@ -268,7 +276,6 @@ export async function POST(req: Request) {
         const due = oldInvoice.balanceDue;
 
         if (parsedPaidAmount >= due) {
-          // Fully pay this invoice
           invoiceUpdates.push(
             prisma.invoice.update({
               where: { id: oldInvoice.id },
@@ -281,7 +288,6 @@ export async function POST(req: Request) {
           );
           parsedPaidAmount -= due;
         } else {
-          // Partially pay this invoice
           invoiceUpdates.push(
             prisma.invoice.update({
               where: { id: oldInvoice.id },
@@ -297,10 +303,27 @@ export async function POST(req: Request) {
       }
     }
 
-    // Now calculate the balance for the current invoice based on remaining paidAmount
-    let balanceDue = SuperTotal - paidAmount;
-    if (balanceDue < 0) balanceDue = 0;
-    const paymentStatus = balanceDue <= 0 ? 'paid' : 'due';
+    let finalPaidAmount = paidAmount;
+    let finalPreviousDue = parsedPreviousDue;
+    let finalRefund = Refund;
+    let balanceDue = 0;
+    let paymentStatus = 'paid';
+
+    if (isAnonymous) {
+      finalPaidAmount = SuperTotal;
+      finalPreviousDue = 0;
+      finalRefund = 0;
+      balanceDue = 0;
+      paymentStatus = 'paid';
+    } else {
+      const paid = parseFloat(paidAmount);
+      const superTotal = parseFloat(SuperTotal);
+
+      if (paid > 0 && paid < superTotal) {
+        balanceDue = superTotal - paid;
+        paymentStatus = 'due';
+      }
+    }
 
     // Build transaction
     const transactionOps = [
@@ -311,16 +334,17 @@ export async function POST(req: Request) {
           customerName,
           invoiceNo: `INV-${Date.now()}-${uuidv4().split('-')[0]}`,
           totalAmount: parsedGrandtotal,
-          previousDue: parsedPreviousDue,
-          paidAmount: paidAmount,
+          previousDue: finalPreviousDue,
+          paidAmount: finalPaidAmount,
           balanceDue,
           paymentStatus,
           supertotal: SuperTotal,
-          refund: Refund,
+          refund: finalRefund,
+          sellesperson:salesperson
         },
       }),
 
-      // Only update customer balance if not anonymous
+      // Update balance only for real customers
       ...(!isAnonymous
         ? [
             prisma.customer.update({
@@ -347,6 +371,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
   }
 }
+
 export async function PUT(request: Request) {
   try {
     const body = await request.json();

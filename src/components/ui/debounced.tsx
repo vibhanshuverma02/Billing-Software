@@ -16,29 +16,29 @@ const DebouncedInput: React.FC<DebouncedInputProps> = ({
   onTotalCalculate,
   ...props
 }) => {
-  const [localValue, setLocalValue] = useState<number>(value);
+  const [localValue, setLocalValue] = useState<string>(value === 0 ? '' : value.toString());
   const [debouncedValue] = useDebounce(localValue, delay);
 
+  // Only trigger debounce logic if input is not empty
   useEffect(() => {
-    if (debouncedValue !== value) {
-      onDebouncedChange(debouncedValue);
+    if (debouncedValue !== '' && debouncedValue !== value.toString()) {
+      const numericValue = Number(debouncedValue);
+      onDebouncedChange(numericValue);
+      onTotalCalculate();
     }
+  }, [debouncedValue]);
 
-    // Trigger total calculation after debounce settles (always debounced)
-    onTotalCalculate();
-  }, [debouncedValue, value, onDebouncedChange, onTotalCalculate]);
-
+  // Sync external value changes to local input
   useEffect(() => {
-    setLocalValue(value);
+    setLocalValue(value === 0 ? '' : value.toString());
   }, [value]);
 
   return (
     <Input
       {...props}
-      value={localValue === 0 ? '' : localValue.toString()}
+      value={localValue}
       onChange={(e) => {
-        const newValue = e.target.value === '' ? 0 : Number(e.target.value);
-        setLocalValue(newValue);
+        setLocalValue(e.target.value);
       }}
     />
   );

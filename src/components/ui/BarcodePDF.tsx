@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Document, Page, View, Image, StyleSheet } from '@react-pdf/renderer';
+import { Document, Page, View, Image, StyleSheet ,Text } from '@react-pdf/renderer';
 
 interface Props {
   barcodeBase64: string;
@@ -52,6 +52,7 @@ export const BarcodePDF = ({ barcodeBase64, count }: Props) => {
 
               >
                 <Image src={barcodeBase64} style={styles.barcode} />
+                <Text style={styles.centerName}>KUKREJA SAREE CENTER</Text>
               </View>
             );
           })}
@@ -87,5 +88,11 @@ const styles = StyleSheet.create({
  barcode: {
     width: CM(BARCODE_WIDTH_CM),
     height: CM(BARCODE_HEIGHT_CM),
+  },
+  centerName: {
+    fontSize: 5,
+    marginTop: 1,
+    textAlign: 'center',
+    fontWeight: 'bold',
   },
 });

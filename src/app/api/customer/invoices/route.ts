@@ -58,7 +58,7 @@ import { NextResponse } from 'next/server';
   where: {
     username: username,
     NOT: {
-      customerName: "NA",
+      // customerName: "NA",
       mobileNo: "0000000000"
     }
   },

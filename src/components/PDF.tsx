@@ -122,7 +122,7 @@ interface InvoicePDFProps {
   date: string;
   customerName: string;
   mobileNo: string;
-  address: string;
+  salesperson: string;
   items: {
     itemName: string;
     hsn: string;
@@ -144,15 +144,18 @@ const InvoicePDF = ({
   date,
   customerName,
   mobileNo,
+  salesperson,
   items,
   Grandtotal,
   gstTotal,
   paidAmount,
   balanceDue,
+  previousBalance,
   paymentStatus,
 }: InvoicePDFProps) => {
   const styles = getStyles(pageSize);
   const isRealCustomer = customerName !== "NA" && mobileNo !== "0000000000";
+    const isPartialCustomer = customerName !== "NA" && mobileNo.toLowerCase() === "anonymous";
 
   return (
     <Document>
@@ -184,33 +187,48 @@ const InvoicePDF = ({
 
             {/* Invoice Info */}
             <View style={[styles.row, { marginTop: 6 }]}>
-              {isRealCustomer && (
+              {(isRealCustomer || isPartialCustomer)&& (
                 <Text>
                   <Text style={styles.label}>Party:</Text> {customerName}
                 </Text>
               )}
               <Text>
                 <Text style={styles.label}>Bill No.:</Text> {invoiceNo}
+                
               </Text>
             </View>
 
+           
             <View style={styles.row}>
-              {isRealCustomer ? (
-                <Text>
-                  
-                  <Text style={styles.label}>Payment Status:</Text>{" "}
-                  {paidAmount === 0 ? "paid" : paymentStatus || "pending"}
-                </Text>
-              ) : (
-                <Text>
-                  <Text style={styles.label}>Payment Status:</Text> paid
-                </Text>
-              )}
-              <Text>
-                <Text style={styles.label}>Bill Date:</Text>{" "}
-                {new Date(date).toLocaleDateString("en-IN")}
-              </Text>
-            </View>
+  {isPartialCustomer ? (
+    <Text>
+      <Text style={styles.label}>Payment Status:</Text> paid
+    </Text>
+  ) : isRealCustomer ? (
+    <Text>
+      <Text style={styles.label}>Payment Status:</Text>{" "}
+      {paidAmount === 0 ? "paid" : paymentStatus || "pending"}
+    </Text>
+  ) : (
+    <Text>
+      <Text style={styles.label}>Payment Status:</Text> paid
+    </Text>
+  )}
+
+  <Text>
+    <Text style={styles.label}>Bill Date:</Text>{" "}
+    {new Date(date).toLocaleDateString("en-IN")}
+  </Text>
+</View>
+
+{/* ✅ Salesperson shown with gap */}
+<View style={{ ...styles.row, marginTop: 8 }}>
+  <Text>
+    <Text style={styles.label}>Salesperson:</Text> {salesperson || "N/A"}
+  </Text>
+</View>
+
+
 
             {/* Items Table */}
             <View style={{ marginTop: 8 }}>
@@ -223,21 +241,21 @@ const InvoicePDF = ({
               </View>
 
               {items.map((item, index) => {
-                const baseRate = item.rate / (1 + item.gstRate / 100);
-                const amount = item.rate * item.quantity;
+               const baseRate = Math.round(item.rate / (1 + item.gstRate / 100)); // Rounded base rate
+                const amount = Math.round(item.rate * item.quantity); // Rounded amount
 
                 return (
                   <View key={index} style={styles.itemRow}>
                     <Text style={col("6%", pageSize, "center")}>{index + 1}</Text>
                     <Text style={col("38%", pageSize)}>{item.itemName}</Text>
                     <Text style={col("17%", pageSize, "left")}>
-                      ₹{baseRate.toFixed(2)}
+                      ₹{baseRate}
                     </Text>
                     <Text style={col("10%", pageSize, "center")}>
                       {item.quantity}
                     </Text>
                     <Text style={col("22%", pageSize, "right")}>
-                      ₹{amount.toFixed(2)}
+                      ₹{amount}
                     </Text>
                   </View>
                 );
@@ -270,14 +288,26 @@ const InvoicePDF = ({
                   style={{ flexDirection: "row", justifyContent: "space-between" }}
                 >
                   <Text>CGST:</Text>
-                  <Text>₹{(gstTotal / 2).toFixed(2)}</Text>
+                  <Text>₹{Math.round(gstTotal / 2)}</Text>
                 </View>
                 <View
                   style={{ flexDirection: "row", justifyContent: "space-between" }}
                 >
                   <Text>SGST:</Text>
-                  <Text>₹{(gstTotal / 2).toFixed(2)}</Text>
+                  <Text>₹{Math.round(gstTotal / 2)}</Text>
                 </View>
+                  {isRealCustomer && previousBalance > 0 && (
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          marginTop: 4,
+        }}
+      >
+        <Text>Previous Balance:</Text>
+        <Text>₹{Math.round(previousBalance)}</Text>
+      </View>
+    )}
                 <View
                   style={{
                     flexDirection: "row",
@@ -289,7 +319,7 @@ const InvoicePDF = ({
                   }}
                 >
                   <Text style={{ fontWeight: "bold" }}>Total Amt.:</Text>
-                  <Text style={{ fontWeight: "bold" }}>₹{Grandtotal.toFixed(2)}</Text>
+                  <Text style={{ fontWeight: "bold" }}>₹{Math.round(Grandtotal)}</Text>
                 </View>
 
                 {/* Show Paid & Balance ONLY for real customers if paidAmount > 0 and less than Grandtotal */}
@@ -303,7 +333,7 @@ const InvoicePDF = ({
                         }}
                       >
                         <Text>Paid Amt.:</Text>
-                        <Text>₹{paidAmount.toFixed(2)}</Text>
+                        <Text>₹{Math.round(paidAmount)}</Text>
                       </View>
                       <View
                         style={{
@@ -313,7 +343,7 @@ const InvoicePDF = ({
                       >
                         <Text>Balance Due:</Text>
                         <Text>
-                          ₹{balanceDue !== null ? balanceDue.toFixed(2) : "0.00"}
+                          ₹{balanceDue !== null ? Math.round(balanceDue) : "0.00"}
                         </Text>
                       </View>
                     </>
@@ -325,8 +355,8 @@ const InvoicePDF = ({
                         justifyContent: "space-between",
                       }}
                     >
-                      <Text>Paid Amt.:</Text>
-                      <Text>₹{paidAmount.toFixed(2)}</Text>
+                      
+                      <Text>₹{Math.round(paidAmount)}</Text>
                     </View>
                   ) : (
                     // paidAmount === 0 for real customers: show only payment status, no paid or balance
@@ -338,13 +368,13 @@ const InvoicePDF = ({
                 )}
 
                 {/* Payment Status for NA / 0000000000 customers */}
-                {!isRealCustomer && (
+                {/* {!isRealCustomer && (
                   <View style={{ marginTop: 6 }}>
                     <Text>
                       <Text style={styles.label}>Payment Status: </Text>paid
                     </Text>
                   </View>
-                )}
+                )} */}
               </View>
             </View>
           </View>
