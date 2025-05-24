@@ -208,28 +208,24 @@ const InvoicePDF = ({
               </Text>
             </View>
 
-            <View style={styles.row}>
-              {mobileNo !== "0000000000" && (
-                <Text>
-                <Text style={styles.label}>Mobile:</Text> {mobileNo}  
-                  
-               <Text style={styles.label}>paymentStatus:</Text>{" "}
-                {paymentStatus}
-                   
-              </Text>
-              
+        <View style={styles.row}>
+  {mobileNo !== "0000000000" ? (
+    <Text>
+      <Text style={styles.label}>Mobile:</Text> {mobileNo}{"  "}
+      <Text style={styles.label}>paymentStatus:</Text> {paymentStatus}
+    </Text>
+  ) : (
+    <Text>
+      <Text style={styles.label}>paymentStatus:</Text> paid
+    </Text>
+  )}
 
-              )}
-              
-                <Text style={styles.label}>paymentStatus: paid </Text>{" "}
-                
-                   
-              <Text>
-                <Text style={styles.label}>Bill Date:</Text>{" "}
-                {new Date(date).toLocaleDateString("en-IN")}
-              </Text>
-             
-            </View>
+  <Text>
+    <Text style={styles.label}>Bill Date:</Text>{" "}
+    {new Date(date).toLocaleDateString("en-IN")}
+  </Text>
+</View>
+
 
             {/* Items Table */}
             <View style={{ marginTop: 8 }}>
