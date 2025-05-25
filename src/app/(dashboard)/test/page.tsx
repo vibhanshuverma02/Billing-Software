@@ -363,7 +363,7 @@ useEffect(() => {
     items: [],
     
   });
- lastEditedRef.current = null;
+//  lastEditedRef.current = null;
   setInvoiceNo("");
   setDate("");
   setIsAnonymous(false);
