@@ -131,7 +131,7 @@ const Test = () => {
  // ✅ Combined customer details state
  const [state, dispatch] = useReducer(reducer, initialState);
  
-const lastEditedRef = useRef<{ row: number; col: 'quantity' | 'rate' | 'gst' } | null>(null);
+// const lastEditedRef = useRef<{ row: number; col: 'quantity' | 'rate' | 'gst' } | null>(null);
 
   // ✅ useRef for debouncing
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
@@ -311,13 +311,13 @@ useEffect(() => {
   form.setValue("paidAmount", paidamount);
 }, [paidamount, form]);
 
- useEffect(() => {
-  if (lastEditedRef.current) {
-    const { row, col } = lastEditedRef.current;
-    const el = inputRefs.current[row]?.[col];
-    if (el) el.focus();
-  }
-}, [fields]);
+//  useEffect(() => {
+//   if (lastEditedRef.current) {
+//     const { row, col } = lastEditedRef.current;
+//     const el = inputRefs.current[row]?.[col];
+//     if (el) el.focus();
+//   }
+// }, [fields]);
 
 
   // ✅ Correct: Remove calculateTotals from dependencies to avoid infinite loop
@@ -799,15 +799,12 @@ const handleKeyDown = (
         <TableCell>{item.itemName}</TableCell>
         <TableCell>{item.hsn}</TableCell>
       <TableCell>
-  <DebouncedInput
-  type="number"
-  value={item.quantity}
-  onDebouncedChange={(value) => {
-    update(index, { ...item, quantity: value });
-    lastEditedRef.current = { row: index, col: 'quantity' };
-  }}
-  onTotalCalculate={calculateTotals}
-  onKeyDown={(e) => handleKeyDown(e, index, 'quantity')}
+ <DebouncedInput
+    type="number"
+    value={item.quantity}
+    onDebouncedChange={(value) => update(index, { ...item, quantity: value })}
+    onTotalCalculate={calculateTotals}
+    onKeyDown={(e) => handleKeyDown(e, index, 'quantity')}
   ref={(el) => {
     if (!inputRefs.current[index]) {
       inputRefs.current[index] = { quantity: null, rate: null, gst: null };
@@ -826,10 +823,8 @@ const handleKeyDown = (
    <DebouncedInput
   type="number"
   value={item.rate}
-  onDebouncedChange={(value) => {
-    update(index, { ...item, rate: value });
-    lastEditedRef.current = { row: index, col: 'rate' };
-  }}
+  onDebouncedChange={(value) => 
+    update(index, { ...item, rate: value }) }
   onTotalCalculate={calculateTotals}
   onKeyDown={(e) => handleKeyDown(e, index, 'rate')}
   ref={(el) => {
@@ -849,7 +844,7 @@ const handleKeyDown = (
  onValueChange={(value) => {
   update(index, { ...item, gstRate: Number(value) });
   calculateTotals();
-  lastEditedRef.current = { row: index, col: 'gst' };
+
 }}
 
 >
