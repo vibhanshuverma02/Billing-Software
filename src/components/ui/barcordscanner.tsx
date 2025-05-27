@@ -38,7 +38,7 @@ export default function ScannerPage({ onSelect }: Props) {
       setPause(true);
       setExpanded(false); // collapse scanner on inactivity
       console.log("Paused due to inactivity");
-    }, 10000);
+    }, 20000);
   };
 
   const handleScan = async (barcode: string) => {
@@ -66,6 +66,8 @@ export default function ScannerPage({ onSelect }: Props) {
       }
     };
   }, [pause]);
+
+  
 
   return (
     <div className="flex flex-col items-center space-y-4 p-4">
@@ -120,7 +122,7 @@ export default function ScannerPage({ onSelect }: Props) {
 
       {/* Scanner with overlay */}
       {expanded && (
-        <div className="relative w-72 h-72 sm:w-96 sm:h-96 rounded-md overflow-hidden shadow-lg">
+        <div className="relative w-100 h-72 sm:w-96 sm:h-96 rounded-md overflow-hidden shadow-lg">
           <Scanner
             formats={[
               "qr_code",

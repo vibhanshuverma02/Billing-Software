@@ -9,6 +9,7 @@ import { pdf } from "@react-pdf/renderer";  // ✅ Import PDFDownloadLink
 import InvoicePDFWrapper from "@/components/ui/InvoiceWrapper"; 
 import { saveAs } from "file-saver";   // ✅ Import he PDF component
 import { z } from "zod";
+import { QuickAddEnhancer } from "@/components/ui/quick integraton";
 import { Loader2, Trash2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -336,12 +337,13 @@ useEffect(() => {
   }
 
   append({
-    itemName: stock.itemName,
-    hsn: stock.hsn,
-    rate: stock.rate,
-    quantity: 1,       // Default quantity
-    gstRate: 5,        // Default GST rate
-  });
+  itemName: stock.itemName,
+  hsn: stock.hsn,
+  rate: stock.rate,
+  quantity: stock.quantity, // ✅ use quantity from `stock`
+  gstRate: stock.gstRate ?? 5, // optional fallback
+});
+
 
   toast.success(`${stock.itemName} added to invoice.`);
 };
@@ -381,15 +383,13 @@ useEffect(() => {
   // Clear reducer state
   dispatch({ type: "RESET_FORM" }); // 👈 Create this case in your reducer to reset `customername`, `customermobileNo`, etc.
 };
-
- useEffect(() => {
+useEffect(() => {
+  if (employeeList.length > 0) return; // Don't fetch again
   const fetchEmployees = async () => {
     try {
       const res = await axios.get("/api/getall");
-
-      // ✅ res.data is the array directly
       if (Array.isArray(res.data)) {
-        const names = res.data.map((emp) => emp.name); // or use `username` if you prefer
+        const names = res.data.map((emp) => emp.name);
         setEmployeeList(names);
       } else {
         throw new Error("Invalid employee list format");
@@ -402,7 +402,7 @@ useEffect(() => {
   };
 
   fetchEmployees();
-}, []);
+}, [employeeList]);
 
 
 
@@ -609,7 +609,7 @@ const handleKeyDown = (
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           {/* Invoice Info */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <FormItem>
               <FormLabel>Invoice No</FormLabel>
               <Input
@@ -629,10 +629,10 @@ const handleKeyDown = (
                 className="w-full"
               />
             </FormItem>
-          </div>
+          </div> */}
 
           <div className="flex justify-start md:justify-end">
-            <Button type="button" onClick={clearForm} className="px-4 py-2">
+            <Button id="new-bill-btn"  type="button" onClick={clearForm} className="px-4 py-2">
               New Bill
             </Button>
           </div>
@@ -722,12 +722,19 @@ const handleKeyDown = (
       <FormLabel>Salesperson</FormLabel>
       <Select
         value={state.sellesperson}
-        onValueChange={(value) => {
-          dispatch({ type: "SET_SELLER", payload: value });
-          field.onChange(value); // update react-hook-form as well
-        }}
+       onValueChange={(value) => {
+  dispatch({ type: "SET_SELLER", payload: value });
+  field.onChange(value);
+
+  // ✅ Blur the trigger manually
+  setTimeout(() => {
+    const active = document.activeElement as HTMLElement;
+    if (active) active.blur();
+  }, 10);
+}}
+
       >
-        <SelectTrigger className="max-w-xs">
+        <SelectTrigger tabIndex={-1}  className="max-w-xs">
           <SelectValue placeholder="Select Salesperson" />
         </SelectTrigger>
       <SelectContent>
@@ -792,6 +799,7 @@ const handleKeyDown = (
       <TableHead>Total</TableHead>
       <TableHead>Action</TableHead>
     </TableRow>
+    
   </TableHeader>
   <TableBody>
     {fields.map((item, index) => (
@@ -883,11 +891,24 @@ const handleKeyDown = (
     ))}
   </TableBody>
 </Table>
-
+<QuickAddEnhancer
+  addItem={addItem}
+  fields={fields}
+  inputRefs={inputRefs}
+  dispatch={dispatch}
+  state={state}
+/>
   </div>
 
   {/* Mobile view: cards / stacked layout */}
  <div className="block md:hidden space-y-4">
+  <QuickAddEnhancer
+  addItem={addItem}
+  fields={fields}
+  inputRefs={inputRefs}
+  dispatch={dispatch}
+  state={state}
+/>
   {fields.map((item, index) => (
     <div key={item.id} className="p-4 border rounded-md shadow-sm">
       <div className="flex justify-between mb-2">
@@ -1030,7 +1051,7 @@ const handleKeyDown = (
 </div>
 
 
-<Button type="submit" className="w-full mt-6 py-3 md:max-w-md md:self-end" disabled={isSubmitting}>
+<Button  id="submit-btn"type="submit" className="w-full mt-6 py-3 md:max-w-md md:self-end" disabled={isSubmitting}>
   {isSubmitting ? (
     <>
       <Loader2 className="mr-2 h-5 w-5 animate-spin" />

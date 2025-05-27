@@ -1,39 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import {
- XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar,
 } from 'recharts';
 import { format, parseISO } from 'date-fns';
 
-// Types
+type PayloadItem = { value: number; [key: string]: unknown };
 
-
-type PayloadItem = {
-  value: number;
-  [key: string]: unknown; // allow extra fields if needed
+type SelectedDayInvoice = {
+  id: number;
+  time: string;
+  url: string; // base64 PDF data
+  salesperson: string;
+  total: number;
 };
 
-type AnalyticsResponse = {
+type AnalyticsSummary = {
   totalSales: number;
-  totalDue: number;
   invoiceCount: number;
   startDate: string;
   endDate: string;
   dailySales: Record<string, number>;
-  invoicesBySalesperson: {
-    invoiceDate: string;
-    salesperson: string;
-    count: number;
-  }[];
 };
 
+type ChartDataPoint = { date: string; sales: number };
 
-type ChartDataPoint = {
-  date: string;
-  sales: number;
-};
-
-const formatINR = (value: number) => {
+const formatINR = (value: number | null | undefined) => {
+  if (typeof value !== 'number' || isNaN(value)) return '₹0.00';
   return value.toLocaleString('en-IN', {
     style: 'currency',
     currency: 'INR',
@@ -68,51 +61,138 @@ const CustomTooltip = ({
   return null;
 };
 
+const downloadBase64Pdf = (base64Data: string, fileName = "invoice.pdf") => {
+  const base64 = base64Data.split(',').pop() || base64Data;
+  const byteCharacters = atob(base64);
+  const byteNumbers = Array.from(byteCharacters, (char) => char.charCodeAt(0));
+  const byteArray = new Uint8Array(byteNumbers);
+  const blob = new Blob([byteArray], { type: "application/pdf" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
+const handleDownload = async (invoiceId: number) => {
+  try {
+    const res = await axios.get<{ url: string }>(`/api/analytics/invoices`, {
+      params: { id: invoiceId },
+    });
+
+    const pdfBase64 = res.data.url; // updated to match the backend key
+    console.log(pdfBase64);
+
+    if (pdfBase64) {
+      downloadBase64Pdf(pdfBase64, `invoice-${invoiceId}.pdf`);
+    } else {
+      alert("PDF not found for this invoice");
+    }
+  } catch (err) {
+    console.error(err);
+    alert("Failed to download PDF");
+  }
+};
+
+
+
 const AnalyticsChart: React.FC = () => {
   const [type, setType] = useState<'thisWeek' | 'prevWeek' | 'custom'>('thisWeek');
-  const [customStart, setCustomStart] = useState<string>('');
-  const [customEnd, setCustomEnd] = useState<string>('');
-  const [data, setData] = useState<AnalyticsResponse | null>(null);
+  const [customStart, setCustomStart] = useState('');
+  const [customEnd, setCustomEnd] = useState('');
+  const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
+  const [selectedDate, setSelectedDate] = useState('');
+  const [dayInvoices, setDayInvoices] = useState<SelectedDayInvoice[] | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const [loading, setLoading] = useState<boolean>(false);
 
-  useEffect(() => {
-    if (type === 'custom' && (!customStart || !customEnd)) return;
+const fetchSummary = async () => {
+  const params: Record<string, string> = { type };
 
-    const params: Record<string, string> = { type };
-    if (type === 'custom') {
+  if (type === 'custom') {
+    // Only send if both dates are provided
+    if (customStart && customEnd) {
       params.start = customStart;
       params.end = customEnd;
+    } else {
+      // Don't call API if either date is missing
+      setSummary(null);
+      return;
     }
+  }
 
+  try {
     setLoading(true);
-    axios.get<AnalyticsResponse>('/api/analytics', { params })
-      .then((res) => setData(res.data))
-      .catch((err) => {
-        console.error(err);
-        setData(null);
-      })
-      .finally(() => setLoading(false));
+    const res = await axios.get<AnalyticsSummary>('/api/analytics/summary', { params });
+    setSummary(res.data);
+  } catch (err) {
+    console.error(err);
+    setSummary(null);
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+  const fetchDayInvoices = async (date: string) => {
+    try {
+      setLoading(true);
+      const res = await axios.get<{ invoices: SelectedDayInvoice[] }>(`/api/analytics/invoices`, {
+        params: { day: date }
+      });
+      setDayInvoices(res.data.invoices);
+    } catch (err) {
+      console.error(err);
+      setDayInvoices(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBarClick = (payload: { date: string; sales: number }) => {
+    setSelectedDate(payload.date);
+  };
+
+  useEffect(() => {
+    fetchSummary();
+    setDayInvoices(null);
+    setSelectedDate('');
   }, [type, customStart, customEnd]);
 
-  const chartData: ChartDataPoint[] = data
-    ? Object.entries(data.dailySales).map(([date, sales]) => ({ date, sales }))
+  useEffect(() => {
+    if (selectedDate) fetchDayInvoices(selectedDate);
+  }, [selectedDate]);
+
+  
+  const chartData: ChartDataPoint[] = summary
+    ? Object.entries(summary.dailySales).map(([date, sales]) => ({ date, sales }))
     : [];
 
-  return (
-    <div style={{
-     
-      minHeight: '100vh',
-      padding: '1rem',
-      fontFamily: 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif',
-    }}>
-      <h2 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '1rem' }} className='text-black'>Sales Analytics</h2>
+  const selectedDayTotal = dayInvoices?.reduce((sum, inv) => sum + inv.total, 0) || 0;
+ 
+const [expandedSalesperson, setExpandedSalesperson] = useState<string | null>(null);
 
-      <div style={{ marginBottom: '1rem' }}  className='text-black'>
+const groupedBySalesperson = dayInvoices?.reduce<Record<string, SelectedDayInvoice[]>>((acc, inv) => {
+  if (!acc[inv.salesperson]) acc[inv.salesperson] = [];
+  acc[inv.salesperson].push(inv);
+  return acc;
+}, {}) || {};
+
+
+  return (
+    <div style={{ padding: '1rem' }}>
+      <h2 className="text-xl font-semibold mb-4 text-black">Sales Analytics</h2>
+
+      <div className="mb-4">
         <select
           value={type}
-          onChange={(e) => setType(e.target.value as 'thisWeek' | 'prevWeek' | 'custom')}
-          style={{ marginRight: 12, padding: '0.5rem', borderRadius: '0.5rem' }}
+          onChange={(e) => {
+            setType(e.target.value as any);
+            setSelectedDate('');
+          }}
+          className="p-2 rounded-md border mr-2 text-black"
         >
           <option value="thisWeek">This Week</option>
           <option value="prevWeek">Previous Week</option>
@@ -120,109 +200,137 @@ const AnalyticsChart: React.FC = () => {
         </select>
 
         {type === 'custom' && (
-          <>
-            <label style={{ marginRight: 8 }}>
-              Start Date:
-              <input
-                type="date"
-                value={customStart}
-                onChange={(e) => setCustomStart(e.target.value)}
-                max={customEnd || undefined}
-                style={{ marginLeft: 4 }}
-              />
-            </label>
-            <label>
-              End Date:
-              <input
-                type="date"
-                value={customEnd}
-                onChange={(e) => setCustomEnd(e.target.value)}
-                min={customStart || undefined}
-                style={{ marginLeft: 4 }}
-              />
-            </label>
-          </>
-        )}
+  <>
+   <input
+              type="date"
+              value={customStart}
+              onChange={(e) => {
+                setCustomStart(e.target.value);
+                setSelectedDate('');
+              }}
+              className="p-2 border rounded text-black"
+            />
+            <input
+              type="date"
+              value={customEnd}
+              onChange={(e) => {
+                setCustomEnd(e.target.value);
+                setSelectedDate('');
+              }}
+              className="p-2 border rounded text-black"
+            />
 
-       
+  </>
+)}
+
+{/* Disable day select if start or end date is missing */}
+{/* {type === 'custom' && customStart && customEnd && (
+  <div className="mb-4">
+    <label className="mr-2 font-medium text-black">Select Day:</label>
+    <input
+      type="date"
+      className="p-1 border rounded text-black"
+      value={selectedDate}
+      min={customStart}
+      max={customEnd}
+      onChange={(e) => setSelectedDate(e.target.value)}
+    />
+  </div>
+)} */}
+
       </div>
 
-      {loading && <p>Loading...</p>}
-
-      {!loading && data && (
-        <div style={{
-          
-          borderRadius: '1rem',
-          padding: '1.5rem',
-         
-          marginBottom: '2rem'
-        }}>
-         <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', marginBottom: '2rem' }}>
-  {/* Sales summary */}
-  <div style={{ flex: 1, minWidth: '250px', color: 'black' }}>
-    <strong>This week Sales :</strong> {formatINR(data.totalSales)} |{' '}
-    <strong>Invoices:</strong> {data.invoiceCount}
-  </div>
-
-  {/* Daily invoices per salesperson */}
-  {data.invoicesBySalesperson && data.invoicesBySalesperson.length > 0 && (
-    <div style={{ flex: 2, minWidth: '350px', color: 'black' }}>
-      <h3 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '0.5rem' }}>
-        Daily Invoices Per Salesperson
-      </h3>
-      {Object.entries(
-        data.invoicesBySalesperson.reduce<Record<string, { salesperson: string; count: number }[]>>(
-          (acc, curr) => {
-            if (!acc[curr.invoiceDate]) acc[curr.invoiceDate] = [];
-            acc[curr.invoiceDate].push({ salesperson: curr.salesperson, count: curr.count });
-            return acc;
-          },
-          {}
-        )
-      ).map(([date, entries]) => (
-        <div key={date} style={{ marginBottom: '0.75rem' }}>
-          <strong>{format(parseISO(date), 'MMM d, yyyy')}:</strong>
-          <ul style={{ paddingLeft: '1rem' }}>
-            {entries.map((entry, idx) => (
-              <li key={idx}>
-                {entry.salesperson || 'Unknown'}: {entry.count} invoice{entry.count > 1 ? 's' : ''}
-              </li>
-            ))}
-          </ul>
+      {/* {type === 'custom' && customStart && customEnd && (
+        <div className="mb-4">
+          <label className="mr-2 font-medium text-black">Select Day:</label>
+          <input
+            type="date"
+            className="p-1 border rounded text-black"
+            value={selectedDate}
+            min={customStart}
+            max={customEnd}
+            onChange={(e) => setSelectedDate(e.target.value)}
+          />
         </div>
-      ))}
-    </div>
-  )}
-</div>
+      )} */}
 
+      {loading && <p className="text-gray-600">Loading...</p>}
+
+      {!loading && summary && (
+        <>
+          <div className="mb-4 text-black">
+            <strong>Total Sales:</strong> {formatINR(selectedDate ? selectedDayTotal : summary.totalSales)} |{' '}
+            <strong>Invoices:</strong> {selectedDate ? (dayInvoices?.length || 0) : summary.invoiceCount}
+          </div>
 
           <ResponsiveContainer width="100%" height={350}>
-            <BarChart
-              data={chartData}
-              margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-            >
-              <CartesianGrid strokeDasharray="3 3"  />
-              <XAxis
-                dataKey="date"
-                
-                tickFormatter={(dateStr) => format(parseISO(dateStr), 'eee')}
-              />
-              <YAxis
-               
-                tickFormatter={(value) => `₹${value.toLocaleString('en-IN')}`}
-              />
+            <BarChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="date" tickFormatter={(date) => format(parseISO(date), 'EEE')} />
+              <YAxis tickFormatter={(val) => `₹${val.toLocaleString('en-IN')}`} />
               <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="sales" fill="#ff9800" radius={[6, 6, 0, 0]} />
+              <Bar
+                dataKey="sales"
+                fill="#ff9800"
+                radius={[6, 6, 0, 0]}
+                onClick={(data) => {
+                  const payload = (data as any)?.payload;
+                  if (payload?.date) {
+                    handleBarClick({ date: payload.date, sales: payload.sales });
+                  }
+                }}
+              />
             </BarChart>
-            
           </ResponsiveContainer>
-          
-        </div>
+        </>
       )}
 
-      {!loading && !data && (
-        <p>No data available. Please select a valid date range.</p>
-      )}
+      {!loading && dayInvoices && selectedDate && (
+  <div className="mt-6 text-black">
+    <h3 className="font-semibold text-lg mb-2">
+      Invoices on {format(parseISO(selectedDate), 'eeee, MMM d, yyyy')}
+    </h3>
+    {dayInvoices.length === 0 ? (
+      <p>No invoices found.</p>
+    ) : (
+      <>
+        {Object.entries(groupedBySalesperson).map(([salesperson, invoices]) => (
+          <div key={salesperson} className="mb-4">
+            <button
+              onClick={() =>
+                setExpandedSalesperson((prev) =>
+                  prev === salesperson ? null : salesperson
+                )
+              }
+              className="font-medium text-left text-black hover:underline"
+            >
+              {salesperson} — {invoices.length} invoice
+              {invoices.length > 1 ? 's' : ''}
+            </button>
+
+            {expandedSalesperson === salesperson && (
+              <ul className="list-disc ml-6 mt-2 text-black">
+                {invoices.map((inv) => (
+                  <li key={inv.id}>
+                    
+                    <button
+  onClick={() => handleDownload(inv.id)}
+  className="text-blue-700 underline ml-2"
+>
+  Download
+</button>
+
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ))}
+      </>
+    )}
+  </div>
+)}
+
     </div>
   );
 };
