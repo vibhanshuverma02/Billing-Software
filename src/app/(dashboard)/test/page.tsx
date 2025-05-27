@@ -79,7 +79,7 @@ interface ResetFormAction {
 type Action =Setseller| SetNameAction | SetMobileAction | SetMessageAction | ToggleLoadingAction | ResetFormAction;;
 const initialState = {
   sellesperson: "",
-  customername: "",
+  customername: "NA",
   customermobileNo: "0000000000",
   customerdetialsMessage: "",
   isCheckingCustomer: false,
@@ -124,7 +124,7 @@ const Test = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [paidamount,  setPaidamount] = useState<number>(0);
   const [refund, setRefund] = useState(0);
-  const [isAnonymous, setIsAnonymous] = useState(false);
+  const [isAnonymous, setIsAnonymous] = useState(true);
 
 
   // const[invoiceId , setInvoiceID]= useState<number>(0);
@@ -136,6 +136,18 @@ const Test = () => {
   // ✅ useRef for debouncing
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 // ✅ Extract username from session
+
+useEffect(() => {
+  if (isAnonymous) {
+    dispatch({ type: "SET_NAME", payload: "NA" });
+    dispatch({ type: "SET_MOBILE", payload: "0000000000" });
+  } else {
+    dispatch({ type: "SET_NAME", payload: "" });
+    dispatch({ type: "SET_MOBILE", payload: "" });
+  }
+}, [isAnonymous]);
+
+
 useEffect(() => {
   if (status === "authenticated" && session?.user) {
     console.log("Username:", session.user.username);
@@ -244,7 +256,7 @@ useEffect(() => {
   ),
   defaultValues: {
     username: username || " ",
-    customerName: "",
+    customerName: "NA",
     mobileNo: "0000000000", // ✅ Set default here
     salesperson: "",
     paidAmount: 0,
@@ -263,6 +275,7 @@ useEffect(() => {
   });
   useEffect(() => {
   if (state.customername) {
+    if (state.customername && state.customername !== "NA")
     form.setValue("customerName", state.customername);
   }
 
@@ -353,7 +366,7 @@ useEffect(() => {
  const clearForm = () => {
   form.reset({
     username: username || " ",
-    customerName: "",
+    customerName: "NA",
     mobileNo: "0000000000",
     salesperson: "",
     paidAmount: 0,
@@ -367,13 +380,13 @@ useEffect(() => {
 //  lastEditedRef.current = null;
   setInvoiceNo("");
   setDate("");
-  setIsAnonymous(false);
   setGstTotal(0);
   setBalanceDue(null);
   setPaymentStatus(null);
   setPaidamount(0);
   setRefund(0);
   setPrevious(0);
+  setIsAnonymous(true)
   // setSelectedStock(null);
   // setQuantity(1);
   // setGstRate(5);
@@ -640,17 +653,7 @@ const handleKeyDown = (
   <input
     type="checkbox"
     checked={isAnonymous}
-    onChange={(e) => {
-      const checked = e.target.checked;
-      setIsAnonymous(checked);
-      if (checked) {
-        dispatch({ type: "SET_NAME", payload: "NA" });
-        dispatch({ type: "SET_MOBILE", payload: "0000000000" });
-      } else {
-        dispatch({ type: "SET_NAME", payload: "" });
-        dispatch({ type: "SET_MOBILE", payload: "0000000000" });
-      }
-    }}
+    onChange={(e) => setIsAnonymous(e.target.checked)}
     id="anonymousToggle"
     className="h-5 w-5 mt-1 sm:mt-0"
   />
@@ -658,9 +661,10 @@ const handleKeyDown = (
     htmlFor="anonymousToggle"
     className="text-sm font-medium text-gray-700 cursor-pointer"
   >
-    generate bill for non saree and lehenge customers
+    Generate anonymous bill (non-saree/lehenga customers)
   </label>
 </div>
+
 
 
 {/* Customer Info */}
