@@ -3,7 +3,7 @@ import { useState } from "react";
 import { PDFDocument } from "pdf-lib";
 import { useDropzone } from "react-dropzone";
 import { Button } from "@/components/ui/button";
-
+import Image from 'next/image';
 export default function ImageToPdf() {
   const [files, setFiles] = useState<File[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -103,7 +103,7 @@ export default function ImageToPdf() {
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             {files.map((file, index) => (
               <div key={index} className="relative group aspect-square">
-                <img
+                <Image
                   src={URL.createObjectURL(file)}
                   alt={`Preview ${index + 1}`}
                   className="w-full h-full object-cover rounded-lg border"

@@ -11,18 +11,22 @@ const favoriteItems: StockItem[] = [
     { id: "5", itemName: "Dress", hsn: "1357", rate: 1000, gstRate: 5, quantity: 1 },
 ];
 
+type BillingAction =
+  | { type: "SET_NAME"; payload: string }
+  | { type: "SET_MOBILE"; payload: string }
+  | { type: "SET_SELLER"; payload: string };
 export function QuickAddEnhancer({
   addItem,
   fields,
   inputRefs,
   dispatch,
-  state,
+
 }: {
   addItem: (item: StockItem) => void;
   fields: StockItem[];
   inputRefs: React.MutableRefObject<Array<{ quantity?: HTMLInputElement | null }>>;
-  dispatch: React.Dispatch<any>;
-  state: any;
+   dispatch: React.Dispatch<BillingAction>;
+
 }) {
   const tableRef = useRef<HTMLDivElement>(null);
   const buttonRefs = useRef<Array<HTMLButtonElement | null>>([]);
@@ -54,7 +58,7 @@ useEffect(() => {
     const lastIndex = fields.length - 1;
     const input = inputRefs.current?.[lastIndex]?.quantity;
     if (input) input.focus();
-  }, [fields.length]);
+  }, [fields.length , inputRefs]);
 
 
   

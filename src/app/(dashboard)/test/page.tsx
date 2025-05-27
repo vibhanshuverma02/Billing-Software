@@ -131,8 +131,7 @@ const Test = () => {
   
  // ✅ Combined customer details state
  const [state, dispatch] = useReducer(reducer, initialState);
- 
-// const lastEditedRef = useRef<{ row: number; col: 'quantity' | 'rate' | 'gst' } | null>(null);
+ console.log(invoiceNo , date)
 
   // ✅ useRef for debouncing
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
@@ -896,7 +895,7 @@ const handleKeyDown = (
   fields={fields}
   inputRefs={inputRefs}
   dispatch={dispatch}
-  state={state}
+ 
 />
   </div>
 
@@ -907,7 +906,7 @@ const handleKeyDown = (
   fields={fields}
   inputRefs={inputRefs}
   dispatch={dispatch}
-  state={state}
+
 />
   {fields.map((item, index) => (
     <div key={item.id} className="p-4 border rounded-md shadow-sm">
