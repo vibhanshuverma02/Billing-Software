@@ -108,7 +108,30 @@ const AnalyticsChart: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
 
-const fetchSummary = async () => {
+
+
+
+  const fetchDayInvoices = async (date: string) => {
+    try {
+      setLoading(true);
+      const res = await axios.get<{ invoices: SelectedDayInvoice[] }>(`/api/analytics/invoices`, {
+        params: { day: date }
+      });
+      setDayInvoices(res.data.invoices);
+    } catch (err) {
+      console.error(err);
+      setDayInvoices(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBarClick = (payload: { date: string; sales: number }) => {
+    setSelectedDate(payload.date);
+  };
+
+  useEffect(() => {
+    const fetchSummary = async () => {
   const params: Record<string, string> = { type };
 
   if (type === 'custom') {
@@ -134,28 +157,6 @@ const fetchSummary = async () => {
     setLoading(false);
   }
 };
-
-
-  const fetchDayInvoices = async (date: string) => {
-    try {
-      setLoading(true);
-      const res = await axios.get<{ invoices: SelectedDayInvoice[] }>(`/api/analytics/invoices`, {
-        params: { day: date }
-      });
-      setDayInvoices(res.data.invoices);
-    } catch (err) {
-      console.error(err);
-      setDayInvoices(null);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleBarClick = (payload: { date: string; sales: number }) => {
-    setSelectedDate(payload.date);
-  };
-
-  useEffect(() => {
     fetchSummary();
     setDayInvoices(null);
     setSelectedDate('');
@@ -189,7 +190,7 @@ const groupedBySalesperson = dayInvoices?.reduce<Record<string, SelectedDayInvoi
         <select
           value={type}
           onChange={(e) => {
-            setType(e.target.value as any);
+            setType(e.target.value as 'thisWeek' | 'prevWeek' | 'custom');
             setSelectedDate('');
           }}
           className="p-2 rounded-md border mr-2 text-black"
@@ -273,12 +274,12 @@ const groupedBySalesperson = dayInvoices?.reduce<Record<string, SelectedDayInvoi
                 dataKey="sales"
                 fill="#ff9800"
                 radius={[6, 6, 0, 0]}
-                onClick={(data) => {
-                  const payload = (data as any)?.payload;
-                  if (payload?.date) {
-                    handleBarClick({ date: payload.date, sales: payload.sales });
-                  }
-                }}
+               onClick={(data: { payload: ChartDataPoint }) => {
+  if (data?.payload?.date) {
+    handleBarClick(data.payload);
+  }
+}}
+
               />
             </BarChart>
           </ResponsiveContainer>
@@ -298,9 +299,10 @@ const groupedBySalesperson = dayInvoices?.reduce<Record<string, SelectedDayInvoi
           <div key={salesperson} className="mb-4">
             <button
               onClick={() =>
-                setExpandedSalesperson((prev) =>
-                  prev === salesperson ? null : salesperson
-                )
+               setExpandedSalesperson((prev: string | null) =>
+  prev === salesperson ? null : salesperson
+)
+
               }
               className="font-medium text-left text-black hover:underline"
             >
