@@ -15,10 +15,10 @@ export async function GET() {
   const employees = [
     { name: 'Mamaji' },
     {  name: 'Billa Ji' },
-    {  name: 'Manga Ram' },
-    {  name: 'Chhotu Lal' },
-    {  name: 'Rajesh' },
-    { name: 'Gyani Devi' },
+    {  name: 'MangeRam' },
+    {  name: 'Golu' },
+    {  name: 'Mukesh' },
+    { name: 'Sanjay' },
   ];
 
   return NextResponse.json(employees);
