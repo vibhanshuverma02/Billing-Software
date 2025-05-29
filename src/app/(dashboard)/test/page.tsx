@@ -399,7 +399,7 @@ useEffect(() => {
   if (employeeList.length > 0) return; // Don't fetch again
   const fetchEmployees = async () => {
     try {
-      const res = await axios.get("/api/getall");
+      const res = await axios.get("/api/getall?action=invoice");
       if (Array.isArray(res.data)) {
         const names = res.data.map((emp) => emp.name);
         setEmployeeList(names);
