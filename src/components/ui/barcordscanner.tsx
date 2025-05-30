@@ -58,13 +58,17 @@ export default function ScannerPage({ onSelect }: Props) {
     setExpanded(true);
   };
 
-  useEffect(() => {
-    // Auto-select DroidCam if available
-    const droidCam = devices.find((d) =>
-      d.label.toLowerCase().includes("droidcam")
-    );
-    if (droidCam) setDeviceId(droidCam.deviceId);
-  }, [devices]);
+ useEffect(() => {
+  const isDroidCam = devices.find(
+    (d) => d.deviceId === deviceId && d.label.toLowerCase().includes("droidcam")
+  );
+  if (!pause && !isDroidCam) resetInactivityTimer();
+
+  return () => {
+    if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
+  };
+}, [pause, deviceId, devices]);
+
 
   useEffect(() => {
     if (!pause) resetInactivityTimer();
