@@ -1,7 +1,13 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Scanner, useDevices, outline, boundingBox, centerText } from "@yudiel/react-qr-scanner";
+import {
+  Scanner,
+  useDevices,
+  outline,
+  boundingBox,
+  centerText,
+} from "@yudiel/react-qr-scanner";
 import { fetchStockItemFromBarcode, StockItem } from "./barcode";
 
 interface Props {
@@ -11,9 +17,8 @@ interface Props {
 export default function ScannerPage({ onSelect }: Props) {
   const [deviceId, setDeviceId] = useState<string | undefined>(undefined);
   const [tracker, setTracker] = useState<string>("centerText");
-  const [pause, setPause] = useState(true); // Start paused, scanner hidden
-  const [expanded, setExpanded] = useState(false); // controls if scanner is expanded/full-size
-
+  const [pause, setPause] = useState(true);
+  const [expanded, setExpanded] = useState(false);
   const devices = useDevices();
   const inactivityTimer = useRef<NodeJS.Timeout | null>(null);
 
@@ -31,12 +36,10 @@ export default function ScannerPage({ onSelect }: Props) {
   }
 
   const resetInactivityTimer = () => {
-    if (inactivityTimer.current) {
-      clearTimeout(inactivityTimer.current);
-    }
+    if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
     inactivityTimer.current = setTimeout(() => {
       setPause(true);
-      setExpanded(false); // collapse scanner on inactivity
+      setExpanded(false);
       console.log("Paused due to inactivity");
     }, 20000);
   };
@@ -45,7 +48,6 @@ export default function ScannerPage({ onSelect }: Props) {
     resetInactivityTimer();
     setPause(true);
     setExpanded(false);
-
     const item = await fetchStockItemFromBarcode(barcode);
     if (item) {
       onSelect(item);
@@ -57,21 +59,22 @@ export default function ScannerPage({ onSelect }: Props) {
   };
 
   useEffect(() => {
-    if (!pause) {
-      resetInactivityTimer();
-    }
+    // Auto-select DroidCam if available
+    const droidCam = devices.find((d) =>
+      d.label.toLowerCase().includes("droidcam")
+    );
+    if (droidCam) setDeviceId(droidCam.deviceId);
+  }, [devices]);
+
+  useEffect(() => {
+    if (!pause) resetInactivityTimer();
     return () => {
-      if (inactivityTimer.current) {
-        clearTimeout(inactivityTimer.current);
-      }
+      if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
     };
   }, [pause]);
 
-  
-
   return (
     <div className="flex flex-col items-center space-y-4 p-4">
-      {/* Toggle Scanner Button for mobile */}
       {!expanded && (
         <button
           onClick={() => {
@@ -84,7 +87,6 @@ export default function ScannerPage({ onSelect }: Props) {
         </button>
       )}
 
-      {/* Controls - show only when expanded */}
       {expanded && (
         <div className="flex flex-col sm:flex-row gap-3 justify-center items-center w-full max-w-md">
           <select
@@ -120,7 +122,6 @@ export default function ScannerPage({ onSelect }: Props) {
         </div>
       )}
 
-      {/* Scanner with overlay */}
       {expanded && (
         <div className="relative w-100 h-72 sm:w-96 sm:h-96 rounded-md overflow-hidden shadow-lg">
           <Scanner
@@ -163,7 +164,6 @@ export default function ScannerPage({ onSelect }: Props) {
             paused={pause}
           />
 
-          {/* Camera Off Overlay */}
           {pause && (
             <div className="absolute inset-0 bg-black bg-opacity-75 flex flex-col items-center justify-center text-white z-10 rounded-md">
               <p className="mb-4">Scanner paused due to inactivity.</p>
