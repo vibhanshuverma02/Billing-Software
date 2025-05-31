@@ -30,6 +30,7 @@ import { useSearchParams } from "next/navigation";
 import ScannerPage from "@/components/ui/barcordscanner";
 
 
+
 type InvoiceFormData = z.infer<typeof invoiceschema>& {
   items: z.infer<typeof stockSchema>["items"];
 };
@@ -49,7 +50,12 @@ interface State {
   customermobileNo: string;
   customerdetialsMessage: string;
   isCheckingCustomer: boolean;
+  customer_gst: string
 } 
+interface SetGST{
+  type: "SET_GST";
+  payload:string;
+}
 interface Setseller{
   type: "SET_SELLER";
   payload:string;
@@ -76,19 +82,22 @@ interface ToggleLoadingAction {
 interface ResetFormAction {
   type: "RESET_FORM";
 }
-type Action =Setseller| SetNameAction | SetMobileAction | SetMessageAction | ToggleLoadingAction | ResetFormAction;;
+type Action = SetGST|Setseller| SetNameAction | SetMobileAction | SetMessageAction | ToggleLoadingAction | ResetFormAction;;
 const initialState = {
   sellesperson: "",
   customername: "NA",
   customermobileNo: "0000000000",
   customerdetialsMessage: "",
   isCheckingCustomer: false,
+   customer_gst:"",
 };
 
 
 
 const reducer = (state:State, action:Action) => {
   switch (action.type) {
+    case "SET_GST":
+       return { ...state, customer_gst: action.payload}
     case"SET_SELLER":
     return { ...state,   sellesperson: action.payload}
     case "SET_NAME":
@@ -115,6 +124,7 @@ const Test = () => {
  const [customerID, setCustomerID]=useState<string|null>(null);
  const [employeeList, setEmployeeList] = useState<string[]>([]);
 
+
   const [invoiceNo, setInvoiceNo] = useState<string>("");
   const [date, setDate] = useState<string>("");
   const [gstTotal, setGstTotal] = useState<number>(0);
@@ -127,7 +137,6 @@ const Test = () => {
   const [isAnonymous, setIsAnonymous] = useState(true);
 
 
-  // const[invoiceId , setInvoiceID]= useState<number>(0);
   
  // ✅ Combined customer details state
  const [state, dispatch] = useReducer(reducer, initialState);
@@ -136,6 +145,8 @@ const Test = () => {
   // ✅ useRef for debouncing
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 // ✅ Extract username from session
+const newBillRef = useRef<HTMLButtonElement>(null);
+
 
 useEffect(() => {
   if (isAnonymous) {
@@ -258,11 +269,13 @@ useEffect(() => {
     username: username || " ",
     customerName: "NA",
     mobileNo: "0000000000", // ✅ Set default here
+    customer_gst:"",
     salesperson: "",
     paidAmount: 0,
     previous: 0,
     Grandtotal: 0,
     SuperTotal: 0,
+    goodsreturn:0,
     Refund: 0,
     items: [],
   },
@@ -283,8 +296,13 @@ useEffect(() => {
     form.setValue("mobileNo", state.customermobileNo);
   }
   if(state.sellesperson){
-  form.setValue("salesperson", state.sellesperson);}
-}, [state.customername, state.customermobileNo,  state.sellesperson, form]);
+  form.setValue("salesperson", state.sellesperson);
+}
+  if (state.customer_gst){
+    form.setValue("customer_gst", state.customer_gst);
+
+  }
+}, [state.customername, state.customermobileNo,  state.sellesperson, state.customer_gst, form]);
 
   
 
@@ -296,6 +314,9 @@ useEffect(() => {
 const subtotal = fields.reduce((sum, item) => sum + item.rate * item.quantity, 0);
 
 // Correct GST extraction from inclusive rate and round to 2 decimals
+
+const gr = form.getValues("goodsreturn")
+
 const gst = fields.reduce((sum, item) => {
   const itemGst =
     (item.rate * item.quantity * item.gstRate) / (100 + item.gstRate);
@@ -303,7 +324,8 @@ const gst = fields.reduce((sum, item) => {
 }, 0);
 
 const grandTotal = subtotal - gst;
-const superTotal = grandTotal + previous + gst;
+
+const superTotal = (grandTotal + previous + gst ) - gr;
 
 form.setValue("previous", previous);
 form.setValue("Grandtotal", grandTotal);
@@ -324,21 +346,12 @@ useEffect(() => {
   form.setValue("paidAmount", paidamount);
 }, [paidamount, form]);
 
-//  useEffect(() => {
-//   if (lastEditedRef.current) {
-//     const { row, col } = lastEditedRef.current;
-//     const el = inputRefs.current[row]?.[col];
-//     if (el) el.focus();
-//   }
-// }, [fields]);
 
-
-  // ✅ Correct: Remove calculateTotals from dependencies to avoid infinite loop
   useEffect(() => {
     calculateTotals();
-  }, [paidamount, fields, previous,calculateTotals]);
-  
-  
+  }, [paidamount, fields, previous , calculateTotals]);
+
+ 
 
 
   // ✅ Add Item to Invoice Table
@@ -369,10 +382,12 @@ useEffect(() => {
     customerName: "NA",
     mobileNo: "0000000000",
     salesperson: "",
+    customer_gst:"",
     paidAmount: 0,
     previous: 0,
     Grandtotal: 0,
     SuperTotal: 0,
+    goodsreturn:0,
     Refund: 0,
     items: [],
     
@@ -387,9 +402,7 @@ useEffect(() => {
   setRefund(0);
   setPrevious(0);
   setIsAnonymous(true)
-  // setSelectedStock(null);
-  // setQuantity(1);
-  // setGstRate(5);
+
   setCustomerID(null);
 
   // Clear reducer state
@@ -485,9 +498,9 @@ useEffect(() => {
     invoiceId,
     invoiceNo,
     date,
-   // customerID,
+ 
     grandTotal,
-    // gstTotal,
+    
    
     paidAmount,
     balanceDue,
@@ -496,9 +509,9 @@ useEffect(() => {
     invoiceId:number;
     invoiceNo: string;
     date: string;
-   // customerID: string ;
+   
     grandTotal: number;
-    // gstTotal:   number;
+    
    
     paidAmount: number;
     balanceDue: number ;
@@ -511,15 +524,20 @@ useEffect(() => {
     // }
 
     // ✅ Ensure we're using the stored state, not `form.getValues()`
+    const gr = form.getValues("goodsreturn")
+    console.log("gr", gr)
     const blob = await pdf(
+    
       <InvoicePDFWrapper 
         invoiceNo={invoiceNo}
         date={date}
         customerName={state.customername}
         mobileNo={state.customermobileNo}
+        customer_gst={state.customer_gst}
         salesperson={state.sellesperson}
         items={fields.length > 0 ? fields : [{ itemName: "N/A", hsn: "0000", rate: 0, quantity: 0, gstRate: 0 }]}
         Grandtotal= {grandTotal}
+        Goodsreturn = {gr}
         gstTotal={ gstTotal}
         previousBalance={previous}
         paidAmount={paidAmount}
@@ -621,30 +639,10 @@ const handleKeyDown = (
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           {/* Invoice Info */}
-          {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            <FormItem>
-              <FormLabel>Invoice No</FormLabel>
-              <Input
-                placeholder="Loading..."
-                value={invoiceNo || ""}
-                readOnly
-                className="w-full"
-              />
-            </FormItem>
-
-            <FormItem>
-              <FormLabel>Order Date</FormLabel>
-              <Input
-                placeholder="Loading..."
-                value={date || ""}
-                readOnly
-                className="w-full"
-              />
-            </FormItem>
-          </div> */}
+         
 
           <div className="flex justify-start md:justify-end">
-            <Button id="new-bill-btn"  type="button" onClick={clearForm} className="px-4 py-2">
+            <Button ref={newBillRef} id="new-bill-btn"  type="button" onClick={clearForm} className="px-4 py-2">
               New Bill
             </Button>
           </div>
@@ -668,7 +666,7 @@ const handleKeyDown = (
 
 
 {/* Customer Info */}
-<div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-8">
+<div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-8">
   <Controller
     name="customerName"
     control={form.control}
@@ -697,6 +695,22 @@ const handleKeyDown = (
           value={state.customermobileNo}
           onChange={(e) => dispatch({ type: "SET_MOBILE", payload: e.target.value })}
           disabled={isAnonymous}
+          className="w-full"
+        />
+      </FormItem>
+    )}
+  />
+  <Controller
+    name="customer_gst"
+    control={form.control}
+    render={({ field }) => (
+      <FormItem>
+        <FormLabel>Customer GSTNo.</FormLabel>
+        <Input
+          {...field}
+          value={state.customer_gst}
+          onChange={(e) => dispatch({ type: "SET_GST", payload: e.target.value })}
+          
           className="w-full"
         />
       </FormItem>
@@ -899,7 +913,7 @@ const handleKeyDown = (
   fields={fields}
   inputRefs={inputRefs}
   dispatch={dispatch}
- 
+ newBillRef={newBillRef}
 />
   </div>
 
@@ -910,6 +924,7 @@ const handleKeyDown = (
   fields={fields}
   inputRefs={inputRefs}
   dispatch={dispatch}
+  newBillRef={newBillRef}
 
 />
   {fields.map((item, index) => (
@@ -1002,9 +1017,29 @@ const handleKeyDown = (
     )}
 
     {/* Always show Grand Total */}
+    <Controller
+  name="goodsreturn"
+  control={form.control}
+  render={({ field }) => (
+    <FormItem>
+      <FormLabel>Goods Return</FormLabel>
+      <DebouncedInput
+        {...field}
+        value={field.value}
+        onDebouncedChange={(val) => form.setValue('goodsreturn', val)}
+        onTotalCalculate={calculateTotals}
+        delay={700}
+        className="w-full"
+        type="number"
+      />
+    </FormItem>
+  )}
+/>
+
+
     <div className="border p-3 rounded-lg">
       <p className="font-semibold text-red-600">
-        Grand Total: ₹{form.getValues("SuperTotal").toFixed(0)}
+    Super Total: ₹{form.watch('SuperTotal')?.toFixed(2) ?? '0.00'}
       </p>
     </div>
 

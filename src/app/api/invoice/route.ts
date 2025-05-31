@@ -165,6 +165,34 @@ return new NextResponse(buffer, {
     }
   }
 // ✅ POST API - Create Customer and Invoice
+async function generateInvoiceNo() {
+  const today = new Date();
+  const formattedDate = today.toISOString().slice(0, 10).replace(/-/g, "");
+  const prefix = `KSC-${formattedDate}`;
+
+  const lastInvoice = await prisma.invoice.findFirst({
+    where: {
+      invoiceNo: {
+        startsWith: prefix,
+      },
+    },
+    orderBy: {
+      invoiceNo: 'desc',
+    },
+  });
+
+  let nextNumber = 1;
+  if (lastInvoice) {
+    const parts = lastInvoice.invoiceNo.split("-");
+    const lastNum = parseInt(parts[2], 10);
+    if (!isNaN(lastNum)) {
+      nextNumber = lastNum + 1;
+    }
+  }
+
+  const padded = String(nextNumber).padStart(3, "0");
+  return `${prefix}-${padded}`; // e.g. "KSC-20240531-001"
+}
 
 export async function POST(req: Request) {
   try {
@@ -190,7 +218,7 @@ export async function POST(req: Request) {
     const parsedGrandtotal = parseFloat(Grandtotal);
     const parsedPreviousDue = parseFloat(previous);
     let parsedPaidAmount = parseFloat(paidAmount); // Will reduce this progressively
-
+const invoiceNo = await generateInvoiceNo();
     if (
       !customerName ||
       !mobileNo ||
@@ -332,7 +360,7 @@ export async function POST(req: Request) {
           username,
           customerId: customer.id,
           customerName,
-          invoiceNo: `INV-${Date.now()}-${uuidv4().split('-')[0]}`,
+          invoiceNo,
           totalAmount: parsedGrandtotal,
           previousDue: finalPreviousDue,
           paidAmount: finalPaidAmount,

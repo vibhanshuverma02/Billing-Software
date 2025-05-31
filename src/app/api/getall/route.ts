@@ -17,14 +17,17 @@ export async function GET(req: Request) {
   if (action === 'invoice') {
     // Static list for invoice
     const staticEmployees = [
-      { name: 'Mamaji' },
+      { name: 'Mama ji' },
       { name: 'Billa Ji' },
-      { name: 'MangeRam' },
-      { name: 'Golu' },
-      { name: 'Mukesh' },
-      { name: 'Sanjay' },
-    ];
-
+      { name: 'MangeRam Ji' },
+      { name: 'Golu Ji' },
+      { name: 'Mukesh Ji' },
+      { name: 'Sanjay Ji' },
+       { name:' Ali Ji'},
+        { name:' Bijender Ji'},
+        { name:'Sabnam Ji'},
+      { name:'Archana Ji'}
+    ]
     return NextResponse.json(staticEmployees);
   }
 

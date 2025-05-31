@@ -9,9 +9,9 @@ import { z } from 'zod';
     customerName: z.string().min(1, "Customer name is required"),
     mobileNo: z.string().min(10, "Mobile number must be at least 10 digits"),
     salesperson: z.string().optional(),
-  
+    goodsreturn:z.coerce.number().nonnegative("Balancedue amount cannot be negative"),
     Grandtotal: z.coerce.number().positive("Total amount must be positive"),
-    // gstTotal:z.coerce.number(),
+     customer_gst:z.string().optional(),
     paidAmount: z.coerce.number().nonnegative("Paid amount cannot be negative"),
     previous: z.coerce.number().nonnegative("Balancedue amount cannot be negative"),
     SuperTotal: z.coerce.number(),

@@ -7,6 +7,7 @@ interface InvoicePDFWrapperProps {
   date: string;
   customerName: string;
   mobileNo: string;
+  customer_gst: string;
  salesperson:string
   items: {
     itemName: string;
@@ -21,6 +22,7 @@ interface InvoicePDFWrapperProps {
   paidAmount: number;
   balanceDue: number | null;
   paymentStatus: string | null;
+  Goodsreturn: number |null;
 }
 
 const ITEM_THRESHOLD = 12;
@@ -35,6 +37,8 @@ const InvoicePDFWrapper = (props: InvoicePDFWrapperProps) => {
     salesperson,
     Grandtotal,
     gstTotal,
+    Goodsreturn,
+    customer_gst,
     previousBalance,
     paidAmount,
     balanceDue,
@@ -61,7 +65,9 @@ const InvoicePDFWrapper = (props: InvoicePDFWrapperProps) => {
       salesperson={salesperson}
       customerName={customerName}
       mobileNo={mobileNo}
+      customer_gst= {customer_gst}
       items={items}
+      Goodsreturn ={Goodsreturn}
       Grandtotal={Grandtotal}
       gstTotal={gstTotal}
       previousBalance={previousBalance}

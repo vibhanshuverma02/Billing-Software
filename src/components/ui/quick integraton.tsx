@@ -9,6 +9,8 @@ const favoriteItems: StockItem[] = [
   { id: "3", itemName: "Pant", hsn: "1357", rate: 600, gstRate: 5, quantity: 1 },
    { id: "4", itemName: "Lehenga", hsn: "1357", rate: 10000, gstRate: 5, quantity: 1 },
     { id: "5", itemName: "Dress", hsn: "1357", rate: 1000, gstRate: 5, quantity: 1 },
+       { id: "6", itemName: "Peticoat", hsn: "1357", rate: 100, gstRate: 5, quantity: 1 },
+
 ];
 
 type BillingAction =
@@ -20,13 +22,13 @@ export function QuickAddEnhancer({
   fields,
   inputRefs,
   dispatch,
-
+ newBillRef
 }: {
   addItem: (item: StockItem) => void;
   fields: StockItem[];
   inputRefs: React.MutableRefObject<Array<{ quantity?: HTMLInputElement | null }>>;
    dispatch: React.Dispatch<BillingAction>;
-
+  newBillRef: React.RefObject<HTMLButtonElement>;
 }) {
   const tableRef = useRef<HTMLDivElement>(null);
   const buttonRefs = useRef<Array<HTMLButtonElement | null>>([]);
@@ -65,19 +67,23 @@ useEffect(() => {
   // Keyboard shortcuts (new bill, print)
   useEffect(() => {
    const handleKey = (e: KeyboardEvent) => {
-  if (e.key === "n") {
-    e.preventDefault();
+ console.log("Key pressed:", e.key);
 
-    // Blur current focused element to reset any trapped focus
-    (document.activeElement as HTMLElement)?.blur();
+    if (e.key === "+") {
+  e.preventDefault();
 
-    const newBillBtn = document.getElementById("new-bill-btn");
-    if (newBillBtn) {
-      newBillBtn.click();
-    } else {
-      console.warn("❌ new-bill-btn not found!");
-    }
+  // Blur the current focused element
+  (document.activeElement as HTMLElement)?.blur();
+
+  // Click the button via ref
+  if (newBillRef.current) {
+    console.log("✅ Clicking via ref");
+    newBillRef.current.click();
+  } else {
+    console.warn("❌ newBillRef is not attached to a DOM element");
   }
+}
+
 
       if (e.ctrlKey && e.key === 'p') {
         e.preventDefault();

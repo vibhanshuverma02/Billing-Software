@@ -123,6 +123,7 @@ interface InvoicePDFProps {
   customerName: string;
   mobileNo: string;
   salesperson: string;
+  customer_gst: string;
   items: {
     itemName: string;
     hsn: string;
@@ -136,6 +137,7 @@ interface InvoicePDFProps {
   paidAmount: number;
   balanceDue: number | null;
   paymentStatus: string | null;
+  Goodsreturn: number|null;
 }
 
 const InvoicePDF = ({
@@ -144,8 +146,10 @@ const InvoicePDF = ({
   date,
   customerName,
   mobileNo,
+  customer_gst,
   salesperson,
   items,
+  Goodsreturn,
   Grandtotal,
   gstTotal,
   paidAmount,
@@ -189,10 +193,15 @@ const InvoicePDF = ({
                   <Text style={styles.label}>Party:</Text> {customerName}
                 </Text>
               )}
-              <Text>
-                <Text style={styles.label}>Bill No.:</Text> {invoiceNo}
-                
-              </Text>
+             {customer_gst && customer_gst.trim() !== "" && (
+    <Text>
+      <Text style={styles.label}> Party-GSTIN:</Text> {customer_gst}
+    </Text>
+  )}
+            <Text>
+  <Text style={styles.label}>Bill No.:</Text> {invoiceNo}
+</Text>
+
             </View>
 
            
@@ -293,6 +302,19 @@ const InvoicePDF = ({
                   <Text>SGST:</Text>
                   <Text>₹{Math.round(gstTotal / 2)}</Text>
                 </View>
+
+   {Goodsreturn && Goodsreturn > 0 && (
+    <View
+      style={{
+        flexDirection: "row",
+        justifyContent: "space-between",
+        marginTop: 4,
+      }}
+    >
+      <Text>Goods Return:</Text>
+      <Text>₹{Math.round(Goodsreturn)}</Text>
+    </View>
+  )}
                   {isRealCustomer && previousBalance > 0 && (
       <View
         style={{
