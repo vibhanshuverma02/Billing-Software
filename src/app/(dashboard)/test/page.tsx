@@ -641,11 +641,7 @@ const handleKeyDown = (
           {/* Invoice Info */}
          
 
-          <div className="flex justify-start md:justify-end">
-            <Button ref={newBillRef} id="new-bill-btn"  type="button" onClick={clearForm} className="px-4 py-2">
-              New Bill
-            </Button>
-          </div>
+          
             
 <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 mb-4">
   <input
@@ -913,7 +909,8 @@ const handleKeyDown = (
   fields={fields}
   inputRefs={inputRefs}
   dispatch={dispatch}
- newBillRef={newBillRef}
+
+  clearForm={ clearForm}
 />
   </div>
 
@@ -924,7 +921,8 @@ const handleKeyDown = (
   fields={fields}
   inputRefs={inputRefs}
   dispatch={dispatch}
-  newBillRef={newBillRef}
+  
+  clearForm={ clearForm}
 
 />
   {fields.map((item, index) => (
@@ -1099,7 +1097,11 @@ const handleKeyDown = (
     "Generate Invoice"
   )}
 </Button>
-
+<div className="flex justify-start md:justify-end">
+            <Button ref={newBillRef}   type="button" onClick={clearForm} className="px-4 py-2">
+              New Bill
+            </Button>
+          </div>
           </form>
         </Form>
       </CardContent>

@@ -22,14 +22,17 @@ export function QuickAddEnhancer({
   fields,
   inputRefs,
   dispatch,
- newBillRef
+  
+  clearForm, // ✅ Add this line
 }: {
   addItem: (item: StockItem) => void;
   fields: StockItem[];
   inputRefs: React.MutableRefObject<Array<{ quantity?: HTMLInputElement | null }>>;
-   dispatch: React.Dispatch<BillingAction>;
-  newBillRef: React.RefObject<HTMLButtonElement>;
-}) {
+  dispatch: React.Dispatch<BillingAction>;
+ 
+  clearForm: () => void; // ✅ Add this line
+}) 
+ {
   const tableRef = useRef<HTMLDivElement>(null);
   const buttonRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const [focusedIndex, setFocusedIndex] = useState(0);
@@ -66,28 +69,25 @@ useEffect(() => {
   
   // Keyboard shortcuts (new bill, print)
   useEffect(() => {
-   const handleKey = (e: KeyboardEvent) => {
- console.log("Key pressed:", e.key);
+     const handleKey = (e: KeyboardEvent) => {
+    console.log("Key pressed:", e.key);
 
     if (e.key === "+") {
-  e.preventDefault();
+      e.preventDefault();
 
-  // Blur the current focused element
-  (document.activeElement as HTMLElement)?.blur();
+      // Blur active input (optional)
+      (document.activeElement as HTMLElement)?.blur();
 
-  // Click the button via ref
-  if (newBillRef.current) {
-    console.log("✅ Clicking via ref");
-    newBillRef.current.click();
-  } else {
-    console.warn("❌ newBillRef is not attached to a DOM element");
-  }
-}
+      // ✅ Directly call clearForm() instead of clicking the button
+      clearForm();
+      return;
+    }
 
 
       if (e.ctrlKey && e.key === 'p') {
         e.preventDefault();
         document.getElementById('submit-btn')?.click();
+        
       }
 
       // Arrow key navigation for favorite items
