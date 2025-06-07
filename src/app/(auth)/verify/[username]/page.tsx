@@ -95,7 +95,7 @@ export default function VerifyAccount () {
                   Please wait
                 </>
               ) : (
-                'Generate Bill'
+                'Submit'
               )}
             </Button>
 

@@ -19,7 +19,7 @@ export async function Sendemail(email: string, username: string, verifyCode: str
     const mailOptions = {
       from: process.env.EMAIL_USER, // Your personal email
       to: email,
-      subject: "Mystery Message Verification Code",
+      subject: "Welcome to Billing Counter ",
       html:  emailHtml, // Use the rendered HTML instead of `react`
     };
 
