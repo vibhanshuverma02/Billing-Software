@@ -55,7 +55,7 @@ const onSubmit = async (data: z.infer<typeof signInSchema>) => {
     try {
       const parsed = JSON.parse(result.error);
       toast.error(parsed.error || 'Login failed');
-    } catch (e) {
+    } catch (error) {
       toast.error(result.error === 'CredentialsSignin' ? 'Incorrect username or password' : result.error);
     }
   } else if (result?.ok) {
