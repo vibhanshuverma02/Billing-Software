@@ -75,36 +75,29 @@ export default function SignUpForm() {
     checkUsernameUnique();
   }, [username]);
 
-  const onSubmit = async (data: z.infer<typeof signUpSchema>) => {
-    setIsSubmitting(true);
-    try {
-      const response = await axios.post<ApiResponse>('/api/sign-up', data);
+const onSubmit = async (data: z.infer<typeof signUpSchema>) => {
+  setIsSubmitting(true);
+  try {
+    const response = await axios.post<ApiResponse>('/api/sign-up', data);
 
-      toast(
-         response.data.message,
-      );
+    toast(response.data.message);
 
-      router.replace(`/verify/${username}`);
+    router.replace(`/verify/${username}`);
+  } catch (err: unknown) {
+    console.error('Error during sign-up:', err);
 
-      setIsSubmitting(false);
-    } catch (error) {
-      console.error('Error during sign-up:', error);
+    const axiosError = err as AxiosError<ApiResponse>;
 
-      const axiosError = error as AxiosError<ApiResponse>;
+    const errorMessage =
+      axiosError.response?.data.message ||
+      'There was a problem with your sign-up. Please try again.';
 
-      // Default error message
-      const errorMessage =  axiosError.response?.data.message ||
-     'There was a problem with your sign-up. Please try again.';
-;
+    toast(errorMessage);
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
-      toast(
-       errorMessage
-        //variant: 'destructive',
-      );
-
-      setIsSubmitting(false);
-    }
-  };
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-800">
