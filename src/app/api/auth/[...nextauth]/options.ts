@@ -12,51 +12,52 @@ export const authOptions: NextAuthOptions = {
         identifier: { label: 'Email or Username', type: 'text', placeholder: 'user@example.com or username' },
         password: { label: 'Password', type: 'password' },
       },
-      async authorize(
-        credentials: Record<"identifier" | "password", string> | undefined
-      ): Promise<{ id: string; email: string; username: string; isVerified: boolean } | null> {
-        if (!credentials?.identifier || !credentials?.password) {
-          throw new Error('Email/Username and password are required');
-        }
+     async authorize(
+  credentials: Record<'identifier' | 'password', string> | undefined
+): Promise<{ id: string; email: string; username: string; isVerified: boolean } | null> {
+  if (!credentials?.identifier || !credentials?.password) {
+    throw new Error(JSON.stringify({ error: 'Email/Username and password are required' }));
+  }
 
-        try {
-          const user = await prisma.user.findFirst({
-            where: {
-              OR: [
-                { email: credentials.identifier },
-                { username: credentials.identifier }
-              ]
-            },
-          });
+  try {
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: credentials.identifier },
+          { username: credentials.identifier },
+        ],
+      },
+    });
 
-          if (!user) {
-            throw new Error('No user found with this identifier');
-          }
-
-          if (!user.isVerified ) {
-            throw new Error('Please verify your account before logging in');
-          }
- 
- if (user.subscriptionStatus !== 'approved') {
-      throw new Error('Your subscription is still pending approval, Kindly contact Vibhanshuverma.dpsr@gmail.com');
+    if (!user) {
+      throw new Error(JSON.stringify({ error: 'No user found with this identifier' }));
     }
 
-          const isPasswordCorrect = await bcrypt.compare(credentials.password, user.password);
-          if (!isPasswordCorrect) {
-            throw new Error('Incorrect password');
-          }
+    if (!user.isVerified) {
+      throw new Error(JSON.stringify('Please verify your account before logging in' ));
+    }
 
-          return {
-            id: user.id,
-            email: user.email,
-            username: user.username,
-            isVerified: user.isVerified,
-          };
-        } catch (error: any) {
-          console.error('Authorization Error:', error.message || error);
-          throw new Error(error.message || 'Login failed. Please try again.');
-        }
-      },
+    if (user.subscriptionStatus !== 'approved') {
+      throw new Error(JSON.stringify('Your subscription is still pending approval. Kindly contact Vibhanshuverma.dpsr@gmail.com' ));
+    }
+
+    const isPasswordCorrect = await bcrypt.compare(credentials.password, user.password);
+    if (!isPasswordCorrect) {
+      throw new Error(JSON.stringify( 'Incorrect password' ));
+    }
+
+    return {
+      id: user.id,
+      email: user.email,
+      username: user.username,
+      isVerified: user.isVerified,
+    };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Login failed';
+    throw new Error(JSON.stringify({ error: message }));
+  }
+}
+
     }),
   ],
   callbacks: {

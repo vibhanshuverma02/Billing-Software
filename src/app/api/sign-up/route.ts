@@ -79,7 +79,7 @@ export async function POST(req: Request) {
     }
 
     // Register new user
- const newUser =   await prisma.user.create({
+  await prisma.user.create({
       data: {
         username,
         email,

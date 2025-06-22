@@ -42,28 +42,29 @@ export default function SignInForm() {
     },
   });
 
-  const onSubmit = async (data: z.infer<typeof signInSchema>) => {
-    setIsSubmitting(true);
+const onSubmit = async (data: z.infer<typeof signInSchema>) => {
+  setIsSubmitting(true);
 
-    const result = await signIn('credentials', {
-      redirect: false,
-      identifier: data.identifier,
-      password: data.password,
-    });
+  const result = await signIn('credentials', {
+    redirect: false,
+    identifier: data.identifier,
+    password: data.password,
+  });
 
-    if (result?.error) {
-      toast.error(
-        result.error === 'CredentialsSignin'
-          ? 'Incorrect username or password'
-          : result.error
-      );
-    } else if (result?.ok) {
-      sessionStorage.removeItem('splashShown');
-      router.replace('/dashboard');
+  if (result?.error) {
+    try {
+      const parsed = JSON.parse(result.error);
+      toast.error(parsed.error || 'Login failed');
+    } catch (e) {
+      toast.error(result.error === 'CredentialsSignin' ? 'Incorrect username or password' : result.error);
     }
+  } else if (result?.ok) {
+    sessionStorage.removeItem('splashShown');
+    router.replace('/dashboard');
+  }
 
-    setIsSubmitting(false);
-  };
+  setIsSubmitting(false);
+};
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-900 px-4">
