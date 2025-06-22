@@ -33,9 +33,13 @@ export const authOptions: NextAuthOptions = {
             throw new Error('No user found with this identifier');
           }
 
-          if (!user.isVerified) {
+          if (!user.isVerified ) {
             throw new Error('Please verify your account before logging in');
           }
+ 
+ if (user.subscriptionStatus !== 'approved') {
+      throw new Error('Your subscription is still pending approval, Kindly contact Vibhanshuverma.dpsr@gmail.com');
+    }
 
           const isPasswordCorrect = await bcrypt.compare(credentials.password, user.password);
           if (!isPasswordCorrect) {
@@ -48,9 +52,9 @@ export const authOptions: NextAuthOptions = {
             username: user.username,
             isVerified: user.isVerified,
           };
-        } catch (error: unknown) {
-          console.error('Authorization Error:', error);
-          throw new Error('An error occurred while logging in');
+        } catch (error: any) {
+          console.error('Authorization Error:', error.message || error);
+          throw new Error(error.message || 'Login failed. Please try again.');
         }
       },
     }),

@@ -11,22 +11,24 @@ datasource db {
 }
 
 model User {
-  id               String     @id @default(cuid())
-  username         String     @unique
-  email            String     @unique
-  phoneNumber      String     @unique // Default phone number
-  password         String
-  verifyCode       String // Default verification code
-  verifyCodeExpiry DateTime   @default(now()) // Set default expiry to current time
-  isVerified       Boolean    @default(false)
-  createdAt        DateTime   @default(now())
-  updatedAt        DateTime   @updatedAt // Fixed casing for consistency
-  customers        Customer[] // One-to-many relationship with customers
-  invoices         Invoice[] // One-to-many relationship with invoices
-  Stock            Stock[]
-  employees        Employee[]
-  dealers          Dealer[]   // Relation to Dealer
-  category         Category[]
+  id                    String     @id @default(cuid())
+  username              String     @unique
+  email                 String     @unique
+  phoneNumber           String     @unique
+  password              String
+  verifyCode            String
+  verifyCodeExpiry      DateTime   @default(now())
+  isVerified            Boolean    @default(false)
+  subscriptionStatus    String     @default("pending")
+  subscriptionApprovedAt DateTime?
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
+  customers             Customer[]
+  invoices              Invoice[]
+  Stock                 Stock[]
+  employees             Employee[]
+  dealers               Dealer[]
+  category              Category[]
 }
 
 model Customer {

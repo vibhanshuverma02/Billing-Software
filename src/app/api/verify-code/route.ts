@@ -1,4 +1,5 @@
 import {prisma} from '@/config/db';
+import { SendEmailToAdmin } from '@/helpers/Sendemail';
 //import { verifySchema } from '@/schema/verifySchema';
 
 export async function POST(request: Request) {
@@ -28,11 +29,13 @@ export async function POST(request: Request) {
           });
           
     
-          return Response.json(
-            { success: true, message: 'Account verified successfully' },
-            { status: 200 }
-          );
-        } else if (!isCodeNotExpired) {
+           await SendEmailToAdmin(user.email, user.username, user.id); // your function that includes the JWT link
+
+      return Response.json(
+        { success: true, message: 'Account verified. Awaiting admin approval.' },
+        { status: 200 }
+      );
+    }  else if (!isCodeNotExpired) {
           // Code has expired
           return Response.json(
             {
