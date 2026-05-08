@@ -89,7 +89,7 @@ export default function PurchaseMangentPage() {
 
   console.log("First 10 bytes for sanity check:", byteArray.slice(0, 10)); // Should start with [37,80,68,70,...]
 
-  const blob = new Blob([byteArray], { type: "application/pdf" });
+const blob = new Blob([byteArray.buffer.slice(0)], { type: "application/pdf" });
   const url = URL.createObjectURL(blob);
 
   const link = document.createElement("a");
