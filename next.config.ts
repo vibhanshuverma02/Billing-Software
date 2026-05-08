@@ -9,9 +9,8 @@ const withPWA = withPWAInit({
 });
 
 const nextConfig = withPWA({
-  experimental: {
-    // ✅ Enable ESM support
-  },
+  turbopack: {},  // ← tells Next.js 16 you've acknowledged the webpack/turbopack conflict
+  experimental: {},
 });
 
 export default nextConfig;
